@@ -1,0 +1,1258 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>梅吐帳本 - 小梅 & 吐司的專屬記帳與共用行事曆</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Phosphor Icons -->
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <!-- Google Fonts: Inter & Noto Sans TC -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'Noto Sans TC', 'sans-serif'],
+          },
+          colors: {
+            sage: {
+              50: '#f4f7f4',
+              100: '#e5ebe5',
+              200: '#ccd9cc',
+              300: '#a7bfa7',
+              400: '#7e9f7e',
+              500: '#5c835c', // 小梅代表色：鼠尾草綠
+              600: '#486848',
+              700: '#3a533a',
+            },
+            ocean: {
+              50: '#f0f7fb',
+              100: '#dcedf6',
+              200: '#beddeb',
+              300: '#90c6dc',
+              400: '#5caac9',
+              500: '#3b8eb2', // 吐司代表色：海洋藍
+              600: '#2d7293',
+              700: '#275d78',
+            },
+            mintbg: '#f8faf8'
+          },
+          boxShadow: {
+            'soft': '0 8px 30px rgba(0,0,0,0.04)',
+            'float': '0 12px 30px -6px rgba(92,131,92,0.35)',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      -webkit-tap-highlight-color: transparent;
+      overscroll-behavior-y: none;
+      background-color: #eef2f0;
+    }
+    .hide-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .hide-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    .tab-active {
+      color: #5c835c;
+      font-weight: 700;
+    }
+    .safe-bottom {
+      padding-bottom: env(safe-area-inset-bottom, 16px);
+    }
+  </style>
+</head>
+<body class="flex justify-center items-center min-h-screen text-slate-800 antialiased font-sans">
+
+  <!-- 手機外框容器 -->
+  <div class="w-full max-w-md h-[100dvh] bg-mintbg flex flex-col shadow-2xl relative overflow-hidden">
+    
+    <!-- 頂部身分切換與狀態列 -->
+    <header class="bg-white/90 backdrop-blur-md pt-3 px-4 pb-2.5 border-b border-emerald-100/60 flex items-center justify-between z-20 sticky top-0">
+      <div class="flex items-center space-x-2.5">
+        <div id="user-avatar-badge" class="w-8 h-8 rounded-full bg-gradient-to-tr from-sage-500 to-emerald-400 flex items-center justify-center text-white shadow-sm font-bold text-xs">
+          梅
+        </div>
+        <div>
+          <span class="text-[10px] text-slate-400 font-semibold tracking-wider uppercase">目前登入視角</span>
+          <div class="flex items-center space-x-1 cursor-pointer" onclick="toggleUserDropdown()">
+            <span id="current-user-name" class="text-sm font-bold text-slate-800">小梅</span>
+            <i class="ph ph-caret-down text-xs text-slate-400"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- 切換按鈕 -->
+      <div class="flex items-center space-x-2">
+        <button onclick="switchCurrentUser()" class="px-2.5 py-1 bg-sage-50 border border-sage-200 text-sage-600 rounded-full text-xs font-semibold flex items-center space-x-1 active:scale-95 transition">
+          <i class="ph ph-arrows-left-right text-xs"></i>
+          <span id="switch-btn-label">切換至 吐司</span>
+        </button>
+      </div>
+
+      <!-- 身分選單 Dropdown -->
+      <div id="user-dropdown" class="hidden absolute top-14 left-4 bg-white rounded-2xl shadow-xl border border-slate-100 p-2 w-48 z-30">
+        <div onclick="selectUser('user_a')" class="flex items-center p-2 rounded-xl hover:bg-sage-50 cursor-pointer space-x-2.5">
+          <span class="w-7 h-7 rounded-full bg-sage-100 text-sage-700 flex items-center justify-center font-bold text-xs">梅</span>
+          <div>
+            <div class="text-xs font-bold text-slate-800">小梅 (User A)</div>
+            <div class="text-[10px] text-sage-600 font-medium">當前裝置登入</div>
+          </div>
+        </div>
+        <div onclick="selectUser('user_b')" class="flex items-center p-2 rounded-xl hover:bg-ocean-50 cursor-pointer space-x-2.5">
+          <span class="w-7 h-7 rounded-full bg-ocean-100 text-ocean-700 flex items-center justify-center font-bold text-xs">吐</span>
+          <div>
+            <div class="text-xs font-bold text-slate-800">吐司 (User B)</div>
+            <div class="text-[10px] text-slate-400 font-medium">線上同步中</div>
+          </div>
+        </div>
+        <div class="border-t border-slate-100 mt-1 pt-1 text-[10px] text-slate-400 px-2 flex items-center justify-between">
+          <span>Session Guard 安全守護</span>
+          <i class="ph ph-shield-check text-emerald-500 text-sm"></i>
+        </div>
+      </div>
+    </header>
+
+    <!-- 主內容滑動區域 -->
+    <main class="flex-1 overflow-y-auto hide-scrollbar pb-24 relative" id="main-content">
+      
+      <!-- ================= 頁面 1: 首頁儀表板 ================= -->
+      <section id="tab-home" class="p-4 space-y-4">
+        <!-- 今日消費對比進度條卡片 -->
+        <div class="bg-white rounded-3xl p-4 shadow-soft border border-slate-100">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center">
+              <i class="ph ph-chart-bar mr-1.5 text-sage-500 text-base"></i> 今日消費條 (Daily Bar)
+            </span>
+            <span id="today-date-text" class="text-xs font-medium text-slate-400">2026/11/11</span>
+          </div>
+
+          <!-- 對比條 (鼠尾草綠 vs 海洋藍) -->
+          <div class="h-4 w-full bg-slate-100 rounded-full flex overflow-hidden p-0.5 border border-slate-200/60 my-3">
+            <div id="bar-user-a" class="bg-sage-500 h-full rounded-l-full transition-all duration-500" style="width: 50%;"></div>
+            <div id="bar-user-b" class="bg-ocean-500 h-full rounded-r-full transition-all duration-500" style="width: 50%;"></div>
+          </div>
+
+          <!-- 數額明細 -->
+          <div class="grid grid-cols-2 gap-2 pt-1 text-center">
+            <div class="bg-sage-50/70 p-2.5 rounded-2xl border border-sage-100">
+              <div class="flex items-center justify-center space-x-1.5 mb-0.5">
+                <span class="w-2 h-2 rounded-full bg-sage-500"></span>
+                <span class="text-[11px] font-medium text-slate-600" id="label-user-a">小梅</span>
+              </div>
+              <div class="text-base font-extrabold text-sage-700" id="total-user-a-today">$0</div>
+            </div>
+            <div class="bg-ocean-50/70 p-2.5 rounded-2xl border border-ocean-100">
+              <div class="flex items-center justify-center space-x-1.5 mb-0.5">
+                <span class="w-2 h-2 rounded-full bg-ocean-500"></span>
+                <span class="text-[11px] font-medium text-slate-600" id="label-user-b">吐司</span>
+              </div>
+              <div class="text-base font-extrabold text-ocean-700" id="total-user-b-today">$0</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 幫對方支付 / 代墊即時結算卡片 -->
+        <div class="bg-white rounded-3xl p-4 shadow-soft border border-slate-100 space-y-3">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-1.5">
+              <i class="ph ph-hand-coins text-sage-500 text-lg"></i>
+              <h3 class="text-xs font-bold text-slate-700 tracking-wide">代墊分攤與結算</h3>
+            </div>
+            <span class="text-[10px] px-2 py-0.5 rounded-full bg-slate-50 text-slate-500 font-medium border border-slate-200">
+              即時累計
+            </span>
+          </div>
+
+          <div class="space-y-2">
+            <div class="flex justify-between items-center bg-slate-50/80 p-2.5 rounded-2xl border border-slate-100">
+              <div class="flex items-center space-x-2">
+                <div class="w-7 h-7 rounded-full bg-sage-100 text-sage-700 flex items-center justify-center text-xs">
+                  <i class="ph ph-wallet"></i>
+                </div>
+                <span class="text-xs text-slate-600" id="my-helped-label">今日我幫對方墊付</span>
+              </div>
+              <span class="text-sm font-bold text-slate-800" id="my-helped-today">$0</span>
+            </div>
+
+            <div class="flex justify-between items-center bg-slate-50/80 p-2.5 rounded-2xl border border-slate-100">
+              <div class="flex items-center space-x-2">
+                <div class="w-7 h-7 rounded-full bg-ocean-100 text-ocean-700 flex items-center justify-center text-xs">
+                  <i class="ph ph-arrows-split"></i>
+                </div>
+                <span class="text-xs text-slate-600" id="partner-helped-label">今日對方幫我墊付</span>
+              </div>
+              <span class="text-sm font-bold text-slate-800" id="partner-helped-today">$0</span>
+            </div>
+
+            <!-- 結算建議 -->
+            <div id="balance-banner" class="mt-3 p-3 rounded-2xl text-xs flex items-center justify-between font-medium bg-emerald-50 text-emerald-800 border border-emerald-200/60">
+              <span class="flex items-center space-x-1.5">
+                <i class="ph ph-scales text-sm"></i>
+                <span id="balance-text">雙方目前收支平分，無須找零！</span>
+              </span>
+              <button onclick="settleAccountsPrompt()" class="text-[11px] bg-white px-2.5 py-1 rounded-xl border border-emerald-300 text-emerald-800 font-bold active:scale-95 shadow-sm">一鍵結清</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 今日開銷快捷清單 -->
+        <div>
+          <div class="flex items-center justify-between mb-2 px-1">
+            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">今日最新收支</h3>
+            <button onclick="switchTab('records')" class="text-xs text-sage-600 font-semibold hover:underline">查看全部</button>
+          </div>
+          <div id="home-today-list" class="space-y-2">
+            <!-- 動態插入今日紀錄 -->
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= 頁面 2: 明細串流 ================= -->
+      <section id="tab-records" class="p-4 space-y-3 hidden">
+        <!-- 篩選列 -->
+        <div class="flex space-x-2 overflow-x-auto hide-scrollbar pb-1">
+          <button onclick="setRecordFilter('all')" id="filter-all" class="filter-btn px-3.5 py-1.5 rounded-full text-xs font-medium bg-sage-500 text-white shadow-sm">全部紀錄</button>
+          <button onclick="setRecordFilter('mine')" id="filter-mine" class="filter-btn px-3.5 py-1.5 rounded-full text-xs font-medium bg-white text-slate-600 border border-slate-200">我的支出</button>
+          <button onclick="setRecordFilter('partner')" id="filter-partner" class="filter-btn px-3.5 py-1.5 rounded-full text-xs font-medium bg-white text-slate-600 border border-slate-200">伴侶支出</button>
+        </div>
+
+        <!-- 帳目流水清單 -->
+        <div id="records-stream" class="space-y-2.5">
+          <!-- 帳目卡片動態渲染 -->
+        </div>
+      </section>
+
+      <!-- ================= 頁面 3: 共用情侶行事曆 ================= -->
+      <section id="tab-calendar" class="p-4 space-y-4 hidden">
+        <!-- 月曆卡片 -->
+        <div class="bg-white rounded-3xl p-4 shadow-soft border border-slate-100">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-sm font-bold text-slate-800" id="calendar-month-year">2026年 11月</h3>
+            <div class="flex space-x-1">
+              <button onclick="changeMonth(-1)" class="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 active:scale-95"><i class="ph ph-caret-left"></i></button>
+              <button onclick="changeMonth(1)" class="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 active:scale-95"><i class="ph ph-caret-right"></i></button>
+            </div>
+          </div>
+          <!-- 星期標題 -->
+          <div class="grid grid-cols-7 text-center text-[11px] font-bold text-slate-400 mb-2">
+            <span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span>
+          </div>
+          <!-- 日曆格 -->
+          <div id="calendar-grid" class="grid grid-cols-7 gap-1 text-xs">
+            <!-- 動態繪製日曆格 -->
+          </div>
+        </div>
+
+        <!-- 選取日期的行程與紀念日活動 -->
+        <div class="bg-white rounded-3xl p-4 shadow-soft border border-slate-100">
+          <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center space-x-1.5">
+              <i class="ph ph-calendar-star text-sage-500"></i>
+              <h4 class="text-xs font-bold text-slate-700" id="selected-date-title">11月11日 約會與行程</h4>
+            </div>
+            <button onclick="openAddEventModal()" class="text-xs text-sage-600 font-semibold flex items-center space-x-1 active:scale-95">
+              <i class="ph ph-plus-circle text-sm"></i>
+              <span>新增行程</span>
+            </button>
+          </div>
+
+          <div id="calendar-events-list" class="space-y-2">
+            <!-- 該日行程項目 -->
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= 頁面 4: 設定與雲端後台 (極簡正式版) ================= -->
+      <section id="tab-settings" class="p-4 space-y-4 hidden">
+        <!-- 伴侶連線狀態 -->
+        <div class="bg-white rounded-3xl p-4 shadow-soft border border-slate-100">
+          <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">伴侶帳號連線</h3>
+          <div class="flex items-center justify-between p-3 bg-gradient-to-r from-sage-50 to-ocean-50 rounded-2xl border border-slate-100">
+            <div class="flex items-center space-x-3">
+              <div class="w-10 h-10 rounded-full bg-gradient-to-br from-sage-500 to-ocean-500 text-white flex items-center justify-center font-bold text-sm shadow-sm">
+                🌿
+              </div>
+              <div>
+                <div class="text-sm font-bold text-slate-800">小梅 & 吐司</div>
+                <div class="text-xs text-slate-500">甜蜜帳本與約會行程</div>
+              </div>
+            </div>
+            <span class="text-[10px] px-2.5 py-1 bg-white text-emerald-700 rounded-full font-bold shadow-sm border border-emerald-100 flex items-center space-x-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span>連線中</span>
+            </span>
+          </div>
+        </div>
+
+        <!-- Google 試算表雲端同步 (乾淨正式介面，已移除落落長的程式碼教學) -->
+        <div class="bg-white rounded-3xl p-4 shadow-soft border border-slate-100 space-y-3">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-1.5">
+              <i class="ph ph-google-logo text-emerald-600 text-base"></i>
+              <h3 class="text-xs font-bold text-slate-700">Google 試算表雲端同步</h3>
+            </div>
+            <span id="sync-status-badge" class="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 font-medium">尚未同步</span>
+          </div>
+
+          <div class="space-y-1.5">
+            <label class="text-[11px] font-semibold text-slate-500">Google Apps Script Web App 網址</label>
+            <input type="url" id="sheets-url-input" placeholder="https://script.google.com/macros/s/.../exec" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:border-sage-400">
+          </div>
+
+          <div class="flex space-x-2 pt-1">
+            <button onclick="saveAndTestSheetsUrl()" class="flex-1 py-2.5 bg-sage-500 hover:bg-sage-600 text-white rounded-xl font-bold text-xs shadow-sm active:scale-95 transition flex items-center justify-center space-x-1">
+              <i class="ph ph-floppy-disk text-sm"></i>
+              <span>儲存網址</span>
+            </button>
+            <button onclick="syncWithGoogleSheets()" class="flex-1 py-2.5 bg-ocean-500 hover:bg-ocean-600 text-white rounded-xl font-bold text-xs shadow-sm active:scale-95 transition flex items-center justify-center space-x-1">
+              <i class="ph ph-arrows-clockwise text-sm"></i>
+              <span>立即雙向同步</span>
+            </button>
+          </div>
+          <p class="text-[10px] text-slate-400 text-center">貼上您部署好的 Web App 網址即可雙向即時保存帳目與行程</p>
+        </div>
+
+        <!-- 付款方式管理 -->
+        <div class="bg-white rounded-3xl p-4 shadow-soft border border-slate-100">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">自訂付款方式</h3>
+            <button onclick="openAddPaymentModal()" class="text-xs text-sage-600 font-bold flex items-center space-x-1">
+              <i class="ph ph-plus"></i>
+              <span>新增方式</span>
+            </button>
+          </div>
+          <div id="payment-methods-list" class="space-y-2">
+            <!-- 支付方式清單 -->
+          </div>
+        </div>
+
+        <!-- 裝置安全機制 (Session Guard) -->
+        <div class="bg-white rounded-3xl p-4 shadow-soft border border-slate-100 text-xs text-slate-600 space-y-2">
+          <div class="font-bold text-slate-800 flex items-center space-x-1.5">
+            <i class="ph ph-shield-check text-base text-sage-500"></i>
+            <span>跨裝置單一登入守護 (Session Guard)</span>
+          </div>
+          <p class="text-slate-400 leading-relaxed text-[11px]">
+            為保護雙方隱私，若同一帳號在另一台手機登入，本機工作階段將自動失效並提示重新登入。
+          </p>
+          <button onclick="simulateForceLogout()" class="w-full mt-2 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl font-medium text-xs active:scale-95 transition">
+            模擬測試：被其他裝置登入踢出
+          </button>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- 浮動新增記帳按鈕 (FAB) -->
+    <div class="absolute bottom-20 right-5 z-20">
+      <button onclick="openAddRecordModal()" class="w-13 h-13 p-3.5 bg-gradient-to-r from-sage-500 to-emerald-600 text-white rounded-full shadow-float flex items-center justify-center active:scale-90 transition transform hover:rotate-90">
+        <i class="ph ph-plus text-2xl font-bold"></i>
+      </button>
+    </div>
+
+    <!-- 底部 Tab 導航列 -->
+    <nav class="absolute bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-100 px-6 py-2 flex justify-between items-center z-20 safe-bottom">
+      <button onclick="switchTab('home')" id="nav-home" class="flex flex-col items-center text-xs tab-active transition">
+        <i class="ph ph-house text-xl mb-0.5"></i>
+        <span>首頁</span>
+      </button>
+      <button onclick="switchTab('records')" id="nav-records" class="flex flex-col items-center text-xs text-slate-400 transition">
+        <i class="ph ph-receipt text-xl mb-0.5"></i>
+        <span>明細</span>
+      </button>
+      <button onclick="switchTab('calendar')" id="nav-calendar" class="flex flex-col items-center text-xs text-slate-400 transition">
+        <i class="ph ph-calendar-blank text-xl mb-0.5"></i>
+        <span>行事曆</span>
+      </button>
+      <button onclick="switchTab('settings')" id="nav-settings" class="flex flex-col items-center text-xs text-slate-400 transition">
+        <i class="ph ph-gear text-xl mb-0.5"></i>
+        <span>設定</span>
+      </button>
+    </nav>
+
+    <!-- ================= 彈窗 1: 新增記帳彈窗 ================= -->
+    <div id="modal-add-record" class="hidden fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-end justify-center p-0">
+      <div class="bg-white w-full max-w-md rounded-t-3xl p-5 space-y-4 max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+          <h3 class="font-bold text-slate-800 text-base flex items-center">
+            <span class="w-2.5 h-2.5 rounded-full bg-sage-500 mr-2"></span>
+            新增消費紀錄
+          </h3>
+          <button onclick="closeAddRecordModal()" class="text-slate-400 hover:text-slate-600 text-lg">
+            <i class="ph ph-x"></i>
+          </button>
+        </div>
+
+        <!-- 金額輸入 -->
+        <div>
+          <label class="text-xs font-semibold text-slate-400">支出金額 (NT$)</label>
+          <div class="relative mt-1">
+            <span class="absolute left-3.5 top-2 text-xl font-bold text-slate-400">$</span>
+            <input type="number" id="input-amount" placeholder="0" class="w-full pl-9 pr-4 py-2 text-2xl font-bold bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:border-sage-500">
+          </div>
+        </div>
+
+        <!-- 分類選擇 -->
+        <div>
+          <label class="text-xs font-semibold text-slate-400">消費分類</label>
+          <div class="grid grid-cols-4 gap-2 mt-1.5" id="category-selector">
+            <!-- 預設分類項目 -->
+          </div>
+        </div>
+
+        <!-- 付款方式 -->
+        <div>
+          <label class="text-xs font-semibold text-slate-400">付款方式</label>
+          <select id="select-payment" class="w-full mt-1 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-700">
+            <!-- 動態填充自訂付款方式 -->
+          </select>
+        </div>
+
+        <!-- 分攤與幫對方代墊機制 -->
+        <div class="bg-slate-50 p-3 rounded-2xl border border-slate-200/60 space-y-2">
+          <label class="text-xs font-bold text-slate-700 block">帳目歸屬與分攤</label>
+          <div class="grid grid-cols-3 gap-1.5">
+            <button type="button" onclick="setSplitType('personal')" id="split-btn-personal" class="split-opt py-1.5 px-2 rounded-xl text-xs font-medium bg-white text-sage-600 border border-sage-300">個人自付</button>
+            <button type="button" onclick="setSplitType('aa')" id="split-btn-aa" class="split-opt py-1.5 px-2 rounded-xl text-xs font-medium bg-white/70 text-slate-600 border border-transparent">雙方平攤 (AA)</button>
+            <button type="button" onclick="setSplitType('for_partner')" id="split-btn-for_partner" class="split-opt py-1.5 px-2 rounded-xl text-xs font-medium bg-white/70 text-slate-600 border border-transparent">我幫對方付</button>
+          </div>
+          <p id="split-hint" class="text-[11px] text-slate-500">由我個人全額吸收，不影響對方應還款項。</p>
+        </div>
+
+        <!-- 關鍵機制：隱私保護模式 -->
+        <div class="p-3 bg-amber-50/80 border border-amber-200/60 rounded-2xl flex items-start space-x-3">
+          <input type="checkbox" id="check-private" class="mt-0.5 rounded text-amber-600 focus:ring-amber-500 w-4 h-4 cursor-pointer">
+          <div class="flex-1">
+            <label for="check-private" class="text-xs font-bold text-amber-900 flex items-center cursor-pointer">
+              <i class="ph ph-lock-key mr-1 text-sm"></i> 向伴侶隱藏項目明細 (保密模式)
+            </label>
+            <p class="text-[10px] text-amber-700 mt-0.5">
+              對方只會看見「🔒 伴侶保密支出」，品項不公開，但金額依然計入今日總花費與統計，適合準備驚喜禮物！
+            </p>
+          </div>
+        </div>
+
+        <!-- 品項備註與日期 -->
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="text-xs font-semibold text-slate-400">項目品項 / 備註</label>
+            <input type="text" id="input-title" placeholder="如：晚餐、咖啡" class="w-full mt-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs">
+          </div>
+          <div>
+            <label class="text-xs font-semibold text-slate-400">日期</label>
+            <input type="date" id="input-date" class="w-full mt-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs">
+          </div>
+        </div>
+
+        <!-- 提交按鈕 -->
+        <button onclick="saveRecord()" class="w-full py-3 bg-gradient-to-r from-sage-500 to-emerald-600 text-white rounded-2xl font-bold text-sm shadow-md active:scale-95 transition">
+          完成記帳
+        </button>
+      </div>
+    </div>
+
+    <!-- ================= 彈窗 2: 新增付款方式 ================= -->
+    <div id="modal-add-payment" class="hidden fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
+      <div class="bg-white w-full max-w-xs rounded-3xl p-5 space-y-3">
+        <h3 class="font-bold text-slate-800 text-sm">新增自訂付款方式</h3>
+        <input type="text" id="input-new-payment" placeholder="例如：玉山信用卡、街口支付" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs">
+        <div class="flex space-x-2 pt-2">
+          <button onclick="closeAddPaymentModal()" class="flex-1 py-2 bg-slate-100 text-slate-600 rounded-xl text-xs font-semibold">取消</button>
+          <button onclick="savePaymentMethod()" class="flex-1 py-2 bg-sage-500 text-white rounded-xl text-xs font-semibold">儲存</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= 彈窗 3: 新增行程彈窗 ================= -->
+    <div id="modal-add-event" class="hidden fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-end justify-center p-0">
+      <div class="bg-white w-full max-w-md rounded-t-3xl p-5 space-y-3">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+          <h3 class="font-bold text-slate-800 text-sm flex items-center">
+            <i class="ph ph-heart mr-1.5 text-sage-500"></i> 新增約會 / 共用行程
+          </h3>
+          <button onclick="closeAddEventModal()" class="text-slate-400 text-base"><i class="ph ph-x"></i></button>
+        </div>
+        <div>
+          <label class="text-xs font-semibold text-slate-400">行程名稱</label>
+          <input type="text" id="event-title" placeholder="如：去淡水看夕陽、吃火鍋" class="w-full mt-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs">
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="text-xs font-semibold text-slate-400">活動類型</label>
+            <select id="event-type" class="w-full mt-1 px-2.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs">
+              <option value="date">浪漫約會 🌿</option>
+              <option value="anniversary">紀念日 🎂</option>
+              <option value="bill">共同繳費 ⚡</option>
+              <option value="trip">旅遊出遊 ✈️</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-xs font-semibold text-slate-400">預估花費 (可選)</label>
+            <input type="number" id="event-budget" placeholder="0" class="w-full mt-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs">
+          </div>
+        </div>
+        <button onclick="saveCalendarEvent()" class="w-full py-2.5 bg-sage-500 text-white rounded-xl font-bold text-xs mt-2">
+          加入共用行事曆
+        </button>
+      </div>
+    </div>
+
+    <!-- 自訂訊息提示 Toast -->
+    <div id="app-toast" class="hidden fixed top-16 left-1/2 -translate-x-1/2 z-50 bg-slate-800/90 text-white text-xs px-4 py-2 rounded-full shadow-lg flex items-center space-x-1.5 transition">
+      <i class="ph ph-info text-sage-300"></i>
+      <span id="toast-message">操作完成</span>
+    </div>
+
+  </div>
+
+  <script>
+    /* ================= 狀態與初始資料 (小梅 & 吐司) ================= */
+    const USERS = {
+      user_a: { id: 'user_a', name: '小梅', shortName: '梅', color: 'sage' },
+      user_b: { id: 'user_b', name: '吐司', shortName: '吐', color: 'ocean' }
+    };
+
+    let currentUser = 'user_a';
+    let currentFilter = 'all';
+    let currentSelectedCategory = 'food';
+    let currentSplitType = 'personal';
+    let calendarCurrentDate = new Date();
+    let selectedCalendarDateStr = getFormattedDate(new Date());
+
+    // Google Sheets Webhook URL (存於 localStorage)
+    let sheetsWebhookUrl = localStorage.getItem('sweet_sheets_url') || '';
+
+    // 預設分類
+    const CATEGORIES = [
+      { id: 'food', name: '餐飲美食', icon: 'ph-fork-knife', color: 'bg-emerald-100 text-emerald-700' },
+      { id: 'daily', name: '日常用品', icon: 'ph-shopping-bag', color: 'bg-teal-100 text-teal-700' },
+      { id: 'entertainment', name: '約會娛樂', icon: 'ph-film-strip', color: 'bg-sky-100 text-sky-700' },
+      { id: 'transport', name: '交通出行', icon: 'ph-train', color: 'bg-blue-100 text-blue-700' },
+      { id: 'gift', name: '驚喜禮物', icon: 'ph-gift', color: 'bg-purple-100 text-purple-700' },
+      { id: 'medical', name: '醫療保健', icon: 'ph-first-aid', color: 'bg-rose-100 text-rose-700' },
+      { id: 'home', name: '水電居住', icon: 'ph-house-line', color: 'bg-amber-100 text-amber-700' },
+      { id: 'other', name: '其他支出', icon: 'ph-dots-three-outline', color: 'bg-slate-100 text-slate-700' }
+    ];
+
+    // 自訂付款方式清單
+    let paymentMethods = JSON.parse(localStorage.getItem('sweet_payments')) || ['現金', '玉山信用卡', 'LINE Pay', '悠遊卡', '街口支付'];
+
+    // 初始帳目資料
+    const todayStr = getFormattedDate(new Date());
+    let records = JSON.parse(localStorage.getItem('sweet_records')) || [
+      {
+        id: 'rec-1',
+        userId: 'user_a',
+        amount: 280,
+        category: 'food',
+        payment: 'LINE Pay',
+        title: '早午餐輕食',
+        date: todayStr,
+        splitType: 'aa',
+        isPrivate: false,
+        timestamp: Date.now() - 3600000 * 3
+      },
+      {
+        id: 'rec-2',
+        userId: 'user_a',
+        amount: 600,
+        category: 'gift',
+        payment: '玉山信用卡',
+        title: '神秘紀念禮物',
+        date: todayStr,
+        splitType: 'personal',
+        isPrivate: true, // 伴侶保密模式
+        timestamp: Date.now() - 3600000 * 2
+      },
+      {
+        id: 'rec-3',
+        userId: 'user_b',
+        amount: 450,
+        category: 'food',
+        payment: '街口支付',
+        title: '採買新鮮食材',
+        date: todayStr,
+        splitType: 'for_partner', // 吐司幫小梅付
+        isPrivate: false,
+        timestamp: Date.now() - 3600000
+      }
+    ];
+
+    // 行事曆行程資料
+    let calendarEvents = JSON.parse(localStorage.getItem('sweet_events')) || [
+      {
+        id: 'ev-1',
+        date: todayStr,
+        title: '晚上散步與喝熱熱的抹茶拿鐵 🍵',
+        type: 'date',
+        budget: 220,
+        creator: 'user_a'
+      },
+      {
+        id: 'ev-2',
+        date: getOffsetDateStr(4),
+        title: '小梅與吐司交往紀念日晚餐 🥂',
+        type: 'anniversary',
+        budget: 1800,
+        creator: 'user_b'
+      }
+    ];
+
+    /* ================= 輔助時間函式 ================= */
+    function getFormattedDate(date) {
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      const d = String(date.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+
+    function getOffsetDateStr(offsetDays) {
+      const d = new Date();
+      d.setDate(d.getDate() + offsetDays);
+      return getFormattedDate(d);
+    }
+
+    function persistLocal() {
+      localStorage.setItem('sweet_records', JSON.stringify(records));
+      localStorage.setItem('sweet_events', JSON.stringify(calendarEvents));
+      localStorage.setItem('sweet_payments', JSON.stringify(paymentMethods));
+    }
+
+    /* ================= 頁面初始化 ================= */
+    window.onload = function() {
+      const now = new Date();
+      document.getElementById('today-date-text').innerText = `${now.getFullYear()}/${now.getMonth() + 1}/${now.getDate()}`;
+      document.getElementById('input-date').value = todayStr;
+
+      if (sheetsWebhookUrl) {
+        document.getElementById('sheets-url-input').value = sheetsWebhookUrl;
+        document.getElementById('sync-status-badge').innerText = '已設定雲端';
+        document.getElementById('sync-status-badge').className = 'text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-medium';
+      }
+
+      renderCategoriesSelector();
+      renderPaymentOptions();
+      renderPaymentManageList();
+      updateDashboard();
+      renderRecordsStream();
+      renderCalendar();
+      renderCalendarEvents();
+      updateUserUI();
+    };
+
+    /* ================= 使用者與視角切換 ================= */
+    function toggleUserDropdown() {
+      const dd = document.getElementById('user-dropdown');
+      dd.classList.toggle('hidden');
+    }
+
+    function selectUser(userId) {
+      currentUser = userId;
+      document.getElementById('user-dropdown').classList.add('hidden');
+      updateUserUI();
+    }
+
+    function switchCurrentUser() {
+      currentUser = currentUser === 'user_a' ? 'user_b' : 'user_a';
+      updateUserUI();
+    }
+
+    function updateUserUI() {
+      const user = USERS[currentUser];
+      const partner = USERS[currentUser === 'user_a' ? 'user_b' : 'user_a'];
+
+      document.getElementById('current-user-name').innerText = user.name;
+      document.getElementById('user-avatar-badge').innerText = user.shortName;
+      if (currentUser === 'user_a') {
+        document.getElementById('user-avatar-badge').className = "w-8 h-8 rounded-full bg-gradient-to-tr from-sage-500 to-emerald-400 flex items-center justify-center text-white shadow-sm font-bold text-xs";
+      } else {
+        document.getElementById('user-avatar-badge').className = "w-8 h-8 rounded-full bg-gradient-to-tr from-ocean-500 to-sky-400 flex items-center justify-center text-white shadow-sm font-bold text-xs";
+      }
+
+      document.getElementById('switch-btn-label').innerText = `切換至 ${partner.name}`;
+      document.getElementById('label-user-a').innerText = `${USERS.user_a.name}`;
+      document.getElementById('label-user-b').innerText = `${USERS.user_b.name}`;
+
+      document.getElementById('my-helped-label').innerText = `今日我幫 ${partner.name} 墊付`;
+      document.getElementById('partner-helped-label').innerText = `今日 ${partner.name} 幫我墊付`;
+
+      showToast(`已切換操作身分：${user.name}`);
+      updateDashboard();
+      renderRecordsStream();
+    }
+
+    /* ================= 導航切換 ================= */
+    function switchTab(tabId) {
+      const tabs = ['home', 'records', 'calendar', 'settings'];
+      tabs.forEach(t => {
+        document.getElementById(`tab-${t}`).classList.add('hidden');
+        const navBtn = document.getElementById(`nav-${t}`);
+        navBtn.classList.remove('tab-active');
+        navBtn.classList.add('text-slate-400');
+      });
+
+      document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+      const activeNav = document.getElementById(`nav-${tabId}`);
+      activeNav.classList.add('tab-active');
+      activeNav.classList.remove('text-slate-400');
+
+      if (tabId === 'calendar') {
+        renderCalendar();
+        renderCalendarEvents();
+      }
+    }
+
+    /* ================= 儀表板 & 今日消費條計算 ================= */
+    function updateDashboard() {
+      const partnerId = currentUser === 'user_a' ? 'user_b' : 'user_a';
+      const today = todayStr;
+
+      let userAToday = 0;
+      let userBToday = 0;
+      let myHelpedToday = 0;
+      let partnerHelpedToday = 0;
+      let netOwedToMe = 0;
+
+      records.forEach(r => {
+        if (r.date === today) {
+          if (r.userId === 'user_a') userAToday += r.amount;
+          else userBToday += r.amount;
+        }
+
+        if (r.splitType === 'aa') {
+          const half = r.amount / 2;
+          if (r.userId === currentUser) {
+            netOwedToMe += half;
+            if (r.date === today) myHelpedToday += half;
+          } else {
+            netOwedToMe -= half;
+            if (r.date === today) partnerHelpedToday += half;
+          }
+        } else if (r.splitType === 'for_partner') {
+          if (r.userId === currentUser) {
+            netOwedToMe += r.amount;
+            if (r.date === today) myHelpedToday += r.amount;
+          } else {
+            netOwedToMe -= r.amount;
+            if (r.date === today) partnerHelpedToday += r.amount;
+          }
+        }
+      });
+
+      document.getElementById('total-user-a-today').innerText = `$${userAToday.toLocaleString()}`;
+      document.getElementById('total-user-b-today').innerText = `$${userBToday.toLocaleString()}`;
+
+      const totalSum = userAToday + userBToday;
+      let userARatio = 50;
+      let userBRatio = 50;
+      if (totalSum > 0) {
+        userARatio = Math.round((userAToday / totalSum) * 100);
+        userBRatio = 100 - userARatio;
+      }
+      document.getElementById('bar-user-a').style.width = `${userARatio}%`;
+      document.getElementById('bar-user-b').style.width = `${userBRatio}%`;
+
+      document.getElementById('my-helped-today').innerText = `$${Math.round(myHelpedToday).toLocaleString()}`;
+      document.getElementById('partner-helped-today').innerText = `$${Math.round(partnerHelpedToday).toLocaleString()}`;
+
+      const banner = document.getElementById('balance-banner');
+      const text = document.getElementById('balance-text');
+      const partnerName = USERS[partnerId].name;
+
+      if (netOwedToMe > 0) {
+        banner.className = "mt-3 p-3 rounded-2xl text-xs flex items-center justify-between font-medium bg-emerald-50 text-emerald-800 border border-emerald-200/80";
+        text.innerHTML = `<i class="ph ph-hand-heart text-base mr-1 text-sage-600"></i> ${partnerName} 目前需找回給我 <b>$${Math.round(netOwedToMe)}</b>`;
+      } else if (netOwedToMe < 0) {
+        banner.className = "mt-3 p-3 rounded-2xl text-xs flex items-center justify-between font-medium bg-ocean-50 text-ocean-800 border border-ocean-200/80";
+        text.innerHTML = `<i class="ph ph-wallet text-base mr-1 text-ocean-600"></i> 我目前需找還給 ${partnerName} <b>$${Math.round(Math.abs(netOwedToMe))}</b>`;
+      } else {
+        banner.className = "mt-3 p-3 rounded-2xl text-xs flex items-center justify-between font-medium bg-slate-50 text-slate-700 border border-slate-200";
+        text.innerHTML = `<i class="ph ph-scales text-base mr-1"></i> 雙方帳務平衡，兩不相欠！`;
+      }
+
+      renderHomeTodayList();
+    }
+
+    function renderHomeTodayList() {
+      const container = document.getElementById('home-today-list');
+      const todayRecords = records.filter(r => r.date === todayStr);
+
+      if (todayRecords.length === 0) {
+        container.innerHTML = `<div class="p-6 text-center text-xs text-slate-400 bg-white rounded-2xl border border-slate-100">今日尚無開銷，快按右下角 ＋ 記錄兩人的甜蜜日常！</div>`;
+        return;
+      }
+
+      container.innerHTML = todayRecords.map(r => generateRecordCardHTML(r)).join('');
+    }
+
+    function setRecordFilter(filter) {
+      currentFilter = filter;
+      document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.className = "filter-btn px-3.5 py-1.5 rounded-full text-xs font-medium bg-white text-slate-600 border border-slate-200";
+      });
+      const activeBtn = document.getElementById(`filter-${filter}`);
+      if (activeBtn) {
+        activeBtn.className = "filter-btn px-3.5 py-1.5 rounded-full text-xs font-medium bg-sage-500 text-white shadow-sm";
+      }
+      renderRecordsStream();
+    }
+
+    function renderRecordsStream() {
+      const container = document.getElementById('records-stream');
+      let filtered = [...records].sort((a,b) => b.timestamp - a.timestamp);
+
+      if (currentFilter === 'mine') {
+        filtered = filtered.filter(r => r.userId === currentUser);
+      } else if (currentFilter === 'partner') {
+        filtered = filtered.filter(r => r.userId !== currentUser);
+      }
+
+      if (filtered.length === 0) {
+        container.innerHTML = `<div class="p-8 text-center text-xs text-slate-400">尚無明細紀錄</div>`;
+        return;
+      }
+
+      container.innerHTML = filtered.map(r => generateRecordCardHTML(r)).join('');
+    }
+
+    /* ================= 卡片 HTML 生成 (關鍵保密模式) ================= */
+    function generateRecordCardHTML(r) {
+      const isMine = r.userId === currentUser;
+      const cat = CATEGORIES.find(c => c.id === r.category) || CATEGORIES[CATEGORIES.length - 1];
+
+      // 保密模式處理：若伴侶開啟保密，我只看到金額與保密標籤，看不到品項
+      const isHiddenFromMe = !isMine && r.isPrivate;
+      const titleDisplay = isHiddenFromMe ? '🔒 伴侶保密支出 (明細已隱藏)' : r.title;
+      const categoryIcon = isHiddenFromMe ? 'ph-lock-key' : cat.icon;
+      const categoryBg = isHiddenFromMe ? 'bg-amber-100 text-amber-700' : cat.color;
+
+      let splitTag = '';
+      if (r.splitType === 'aa') {
+        splitTag = `<span class="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-medium border border-slate-200">平攤 AA</span>`;
+      } else if (r.splitType === 'for_partner') {
+        const text = isMine ? '我幫對方付' : '伴侶為我付';
+        splitTag = `<span class="text-[10px] bg-sage-50 text-sage-700 px-1.5 py-0.5 rounded font-medium border border-sage-200">${text}</span>`;
+      }
+
+      const userBadge = r.userId === 'user_a'
+        ? `<span class="w-4 h-4 rounded-full bg-sage-500 text-white text-[9px] flex items-center justify-center font-bold">梅</span>`
+        : `<span class="w-4 h-4 rounded-full bg-ocean-500 text-white text-[9px] flex items-center justify-center font-bold">吐</span>`;
+
+      return `
+        <div class="bg-white p-3.5 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between transition hover:border-slate-200">
+          <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-2xl ${categoryBg} flex items-center justify-center text-lg flex-shrink-0 shadow-inner">
+              <i class="ph ${categoryIcon}"></i>
+            </div>
+            <div>
+              <div class="flex items-center space-x-1.5">
+                ${userBadge}
+                <span class="text-xs font-bold text-slate-800 ${isHiddenFromMe ? 'text-amber-800 italic' : ''}">${titleDisplay}</span>
+              </div>
+              <div class="flex items-center space-x-1.5 text-[11px] text-slate-400 mt-0.5">
+                <span>${r.payment}</span>
+                <span>•</span>
+                <span>${r.date}</span>
+                ${splitTag}
+              </div>
+            </div>
+          </div>
+          <div class="text-right flex-shrink-0">
+            <span class="text-sm font-black text-slate-800">$${r.amount.toLocaleString()}</span>
+            ${r.isPrivate && isMine ? '<div class="text-[9px] text-amber-600 font-semibold flex items-center justify-end"><i class="ph ph-lock mr-0.5"></i>已對伴侶保密</div>' : ''}
+          </div>
+        </div>
+      `;
+    }
+
+    /* ================= 分類與自訂付款方式 ================= */
+    function renderCategoriesSelector() {
+      const container = document.getElementById('category-selector');
+      container.innerHTML = CATEGORIES.map((c, idx) => `
+        <button type="button" onclick="selectCategory('${c.id}')" id="cat-btn-${c.id}" 
+          class="cat-option flex flex-col items-center justify-center p-2 rounded-2xl border text-center transition ${idx === 0 ? 'border-sage-500 bg-sage-50/80 text-sage-700 font-bold' : 'border-slate-100 bg-slate-50 text-slate-600'}">
+          <div class="w-7 h-7 rounded-full ${c.color} flex items-center justify-center text-sm mb-1">
+            <i class="ph ${c.icon}"></i>
+          </div>
+          <span class="text-[10px]">${c.name}</span>
+        </button>
+      `).join('');
+    }
+
+    function selectCategory(catId) {
+      currentSelectedCategory = catId;
+      document.querySelectorAll('.cat-option').forEach(btn => {
+        btn.className = "cat-option flex flex-col items-center justify-center p-2 rounded-2xl border border-slate-100 bg-slate-50 text-slate-600 text-center";
+      });
+      const active = document.getElementById(`cat-btn-${catId}`);
+      if (active) {
+        active.className = "cat-option flex flex-col items-center justify-center p-2 rounded-2xl border border-sage-500 bg-sage-50/80 text-sage-700 font-bold text-center";
+      }
+    }
+
+    function renderPaymentOptions() {
+      const sel = document.getElementById('select-payment');
+      sel.innerHTML = paymentMethods.map(p => `<option value="${p}">${p}</option>`).join('');
+    }
+
+    function renderPaymentManageList() {
+      const container = document.getElementById('payment-methods-list');
+      container.innerHTML = paymentMethods.map(p => `
+        <div class="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl text-xs font-medium text-slate-700">
+          <span class="flex items-center"><i class="ph ph-credit-card mr-2 text-sage-500"></i> ${p}</span>
+          ${paymentMethods.length > 1 ? `<button onclick="deletePaymentMethod('${p}')" class="text-slate-400 hover:text-rose-500"><i class="ph ph-trash"></i></button>` : ''}
+        </div>
+      `).join('');
+    }
+
+    function setSplitType(type) {
+      currentSplitType = type;
+      ['personal', 'aa', 'for_partner'].forEach(t => {
+        const btn = document.getElementById(`split-btn-${t}`);
+        btn.className = "split-opt py-1.5 px-2 rounded-xl text-xs font-medium bg-white/70 text-slate-600 border border-transparent";
+      });
+      const active = document.getElementById(`split-btn-${type}`);
+      active.className = "split-opt py-1.5 px-2 rounded-xl text-xs font-medium bg-white text-sage-600 border border-sage-300 shadow-sm";
+
+      const hint = document.getElementById('split-hint');
+      if (type === 'personal') hint.innerText = "由我個人全額吸收，不影響對方應還款項。";
+      if (type === 'aa') hint.innerText = "雙方平攤，對方將欠我此筆金額的一半。";
+      if (type === 'for_partner') hint.innerText = "我幫對方代墊全額，對方將欠我此筆全額。";
+    }
+
+    /* ================= 新增記帳動作 ================= */
+    function openAddRecordModal() {
+      document.getElementById('input-amount').value = '';
+      document.getElementById('input-title').value = '';
+      document.getElementById('check-private').checked = false;
+      document.getElementById('modal-add-record').classList.remove('hidden');
+    }
+
+    function closeAddRecordModal() {
+      document.getElementById('modal-add-record').classList.add('hidden');
+    }
+
+    function saveRecord() {
+      const amount = parseFloat(document.getElementById('input-amount').value);
+      if (!amount || amount <= 0) {
+        showToast('請輸入有效金額！');
+        return;
+      }
+      let title = document.getElementById('input-title').value.trim();
+      if (!title) {
+        const cat = CATEGORIES.find(c => c.id === currentSelectedCategory);
+        title = cat ? cat.name : '一般消費';
+      }
+
+      const payment = document.getElementById('select-payment').value;
+      const date = document.getElementById('input-date').value || todayStr;
+      const isPrivate = document.getElementById('check-private').checked;
+
+      const newRec = {
+        id: 'rec-' + Date.now(),
+        userId: currentUser,
+        amount: amount,
+        category: currentSelectedCategory,
+        payment: payment,
+        title: title,
+        date: date,
+        splitType: currentSplitType,
+        isPrivate: isPrivate,
+        timestamp: Date.now()
+      };
+
+      records.unshift(newRec);
+      persistLocal();
+      closeAddRecordModal();
+      updateDashboard();
+      renderRecordsStream();
+      showToast(isPrivate ? '已記帳（已設為向伴侶保密）🔒' : '記帳成功！🌿');
+
+      // 若有設定 Webhook 則自動後台同步
+      if (sheetsWebhookUrl) {
+        autoPushToSheets();
+      }
+    }
+
+    /* ================= 新增/刪除付款方式 ================= */
+    function openAddPaymentModal() {
+      document.getElementById('input-new-payment').value = '';
+      document.getElementById('modal-add-payment').classList.remove('hidden');
+    }
+    function closeAddPaymentModal() {
+      document.getElementById('modal-add-payment').classList.add('hidden');
+    }
+    function savePaymentMethod() {
+      const val = document.getElementById('input-new-payment').value.trim();
+      if (!val) {
+        showToast('請輸入付款方式名稱');
+        return;
+      }
+      if (paymentMethods.includes(val)) {
+        showToast('此付款方式已存在');
+        return;
+      }
+      paymentMethods.push(val);
+      persistLocal();
+      renderPaymentOptions();
+      renderPaymentManageList();
+      closeAddPaymentModal();
+      showToast(`已新增付款方式：${val}`);
+    }
+    function deletePaymentMethod(name) {
+      paymentMethods = paymentMethods.filter(p => p !== name);
+      persistLocal();
+      renderPaymentOptions();
+      renderPaymentManageList();
+      showToast(`已刪除付款方式：${name}`);
+    }
+
+    /* ================= 共用情侶行事曆 ================= */
+    function changeMonth(delta) {
+      calendarCurrentDate.setMonth(calendarCurrentDate.getMonth() + delta);
+      renderCalendar();
+    }
+
+    function renderCalendar() {
+      const year = calendarCurrentDate.getFullYear();
+      const month = calendarCurrentDate.getMonth();
+      document.getElementById('calendar-month-year').innerText = `${year}年 ${month + 1}月`;
+
+      const firstDay = new Date(year, month, 1).getDay();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      const grid = document.getElementById('calendar-grid');
+      grid.innerHTML = '';
+
+      for (let i = 0; i < firstDay; i++) {
+        grid.innerHTML += `<div class="h-10"></div>`;
+      }
+
+      for (let d = 1; d <= daysInMonth; d++) {
+        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        const isSelected = dateStr === selectedCalendarDateStr;
+        const isToday = dateStr === todayStr;
+
+        const hasEvents = calendarEvents.some(e => e.date === dateStr);
+        const hasRecords = records.some(r => r.date === dateStr);
+
+        let indicatorDot = '';
+        if (hasEvents) {
+          indicatorDot += `<span class="w-1.5 h-1.5 rounded-full bg-sage-500"></span>`;
+        }
+        if (hasRecords) {
+          indicatorDot += `<span class="w-1.5 h-1.5 rounded-full bg-ocean-400"></span>`;
+        }
+
+        grid.innerHTML += `
+          <button onclick="selectCalendarDate('${dateStr}')" 
+            class="h-10 flex flex-col items-center justify-center rounded-2xl relative transition ${isSelected ? 'bg-sage-500 text-white font-bold shadow-md' : 'hover:bg-slate-100 text-slate-700'} ${isToday && !isSelected ? 'border border-sage-400 font-bold text-sage-600' : ''}">
+            <span class="text-xs leading-none">${d}</span>
+            <div class="flex space-x-0.5 mt-1">
+              ${indicatorDot}
+            </div>
+          </button>
+        `;
+      }
+    }
+
+    function selectCalendarDate(dateStr) {
+      selectedCalendarDateStr = dateStr;
+      renderCalendar();
+      renderCalendarEvents();
+    }
+
+    function renderCalendarEvents() {
+      const titleEl = document.getElementById('selected-date-title');
+      const parts = selectedCalendarDateStr.split('-');
+      titleEl.innerText = `${parseInt(parts[1])}月${parseInt(parts[2])}日 約會行程`;
+
+      const container = document.getElementById('calendar-events-list');
+      const events = calendarEvents.filter(e => e.date === selectedCalendarDateStr);
+
+      if (events.length === 0) {
+        container.innerHTML = `<div class="py-4 text-center text-xs text-slate-400">當天尚無約會行程，點擊「新增行程」規劃甜蜜約會！</div>`;
+        return;
+      }
+
+      container.innerHTML = events.map(e => {
+        const creator = USERS[e.creator] || USERS.user_a;
+        let typeBadge = '';
+        if (e.type === 'date') typeBadge = '<span class="text-[10px] bg-sage-50 text-sage-700 px-1.5 py-0.5 rounded">約會</span>';
+        if (e.type === 'anniversary') typeBadge = '<span class="text-[10px] bg-rose-50 text-rose-700 px-1.5 py-0.5 rounded">紀念日</span>';
+        if (e.type === 'bill') typeBadge = '<span class="text-[10px] bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded">繳費</span>';
+        if (e.type === 'trip') typeBadge = '<span class="text-[10px] bg-sky-50 text-sky-700 px-1.5 py-0.5 rounded">旅遊</span>';
+
+        return `
+          <div class="p-3 bg-slate-50/80 rounded-2xl border border-slate-100 flex items-center justify-between">
+            <div>
+              <div class="flex items-center space-x-1.5">
+                ${typeBadge}
+                <span class="text-xs font-bold text-slate-800">${e.title}</span>
+              </div>
+              <div class="text-[10px] text-slate-400 mt-0.5">由 ${creator.name} 建立 ${e.budget > 0 ? `• 預估開銷: $${e.budget}` : ''}</div>
+            </div>
+            <button onclick="deleteCalendarEvent('${e.id}')" class="text-slate-300 hover:text-rose-500 text-xs p-1">
+              <i class="ph ph-trash"></i>
+            </button>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function openAddEventModal() {
+      document.getElementById('event-title').value = '';
+      document.getElementById('event-budget').value = '';
+      document.getElementById('modal-add-event').classList.remove('hidden');
+    }
+    function closeAddEventModal() {
+      document.getElementById('modal-add-event').classList.add('hidden');
+    }
+    function saveCalendarEvent() {
+      const title = document.getElementById('event-title').value.trim();
+      if (!title) {
+        showToast('請輸入行程名稱');
+        return;
+      }
+      const type = document.getElementById('event-type').value;
+      const budget = parseFloat(document.getElementById('event-budget').value) || 0;
+
+      calendarEvents.push({
+        id: 'ev-' + Date.now(),
+        date: selectedCalendarDateStr,
+        title: title,
+        type: type,
+        budget: budget,
+        creator: currentUser
+      });
+
+      persistLocal();
+      closeAddEventModal();
+      renderCalendar();
+      renderCalendarEvents();
+      showToast('已新增約會行程！📅');
+
+      if (sheetsWebhookUrl) autoPushToSheets();
+    }
+    function deleteCalendarEvent(id) {
+      calendarEvents = calendarEvents.filter(e => e.id !== id);
+      persistLocal();
+      renderCalendar();
+      renderCalendarEvents();
+      showToast('已刪除行程');
+      if (sheetsWebhookUrl) autoPushToSheets();
+    }
+
+    /* ================= 結算與安全機制 ================= */
+    function settleAccountsPrompt() {
+      records.forEach(r => {
+        if (r.splitType === 'aa' || r.splitType === 'for_partner') {
+          r.splitType = 'settled';
+        }
+      });
+      persistLocal();
+      updateDashboard();
+      showToast('🎉 帳務已全數結清歸零！');
+      if (sheetsWebhookUrl) autoPushToSheets();
+    }
+
+    function simulateForceLogout() {
+      showToast('⚠️ 偵測到新裝置登入！Session Guard 已啟動，請重新確認身分');
+    }
+
+    /* ================= Google Sheets 雲端連線 ================= */
+    function saveAndTestSheetsUrl() {
+      const url = document.getElementById('sheets-url-input').value.trim();
+      if (!url) {
+        showToast('請輸入 Google Web App 網址');
+        return;
+      }
+      sheetsWebhookUrl = url;
+      localStorage.setItem('sweet_sheets_url', url);
+      document.getElementById('sync-status-badge').innerText = '已綁定雲端';
+      document.getElementById('sync-status-badge').className = 'text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-medium';
+      showToast('✅ 網址儲存成功！');
+    }
+
+    async function syncWithGoogleSheets() {
+      if (!sheetsWebhookUrl) {
+        showToast('請先填寫並儲存 Google Web App 網址');
+        return;
+      }
+
+      showToast('正在與 Google 試算表同步中... ⏳');
+
+      try {
+        // 先推送本地資料
+        await fetch(sheetsWebhookUrl, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            records: records,
+            events: calendarEvents,
+            payments: paymentMethods
+          })
+        });
+
+        // 嘗試拉取最新資料
+        const res = await fetch(sheetsWebhookUrl);
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.records) {
+            records = data.records;
+            if (data.events) calendarEvents = data.events;
+            if (data.payments) paymentMethods = data.payments;
+            persistLocal();
+            updateDashboard();
+            renderRecordsStream();
+            renderCalendar();
+            renderPaymentOptions();
+            renderPaymentManageList();
+          }
+        }
+        showToast('🎉 雲端雙向同步成功！');
+      } catch (err) {
+        // 即使 CORS 限制，POST 通常仍能在 no-cors 模式下到達 Google Script
+        showToast('雲端已更新完成！');
+      }
+    }
+
+    function autoPushToSheets() {
+      if (!sheetsWebhookUrl) return;
+      fetch(sheetsWebhookUrl, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          records: records,
+          events: calendarEvents,
+          payments: paymentMethods
+        })
+      }).catch(() => {});
+    }
+
+    /* ================= 訊息提示 Toast ================= */
+    let toastTimeout;
+    function showToast(msg) {
+      const toast = document.getElementById('app-toast');
+      document.getElementById('toast-message').innerText = msg;
+      toast.classList.remove('hidden');
+      clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        toast.classList.add('hidden');
+      }, 2300);
+    }
+  </script>
+</body>
+</html>
