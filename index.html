@@ -3,15 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>梅吐帳本 - 小梅 & 吐司的專屬記帳與共用行事曆</title>
-  <!-- Tailwind CSS CDN -->
+  <title>梅吐生活帳本｜小梅 & 吐司</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Phosphor Icons -->
-  <script src="https://unpkg.com/@phosphor-icons/web"></script>
-  <!-- Google Fonts: Inter & Noto Sans TC -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <script>
     tailwind.config = {
       theme: {
@@ -21,1250 +18,1449 @@
           },
           colors: {
             sage: {
-              50: '#f4f7f4',
-              100: '#e5ebe5',
-              200: '#ccd9cc',
-              300: '#a7bfa7',
-              400: '#7e9f7e',
-              500: '#3D7A68', // 小梅代表色：鼠尾草綠
-              600: '#326556',
-              700: '#274f43',
+              50: '#F2F7F5',
+              100: '#E1EDE8',
+              200: '#C3DBD1',
+              400: '#82B09D',
+              500: '#5F8D7A',
+              600: '#4A7463',
+              700: '#395B4E',
             },
             ocean: {
-              50: '#f0f7fb',
-              100: '#dcedf6',
-              200: '#beddeb',
-              300: '#90c6dc',
-              400: '#5caac9',
-              500: '#2B6CB0', // 吐司代表色：海洋藍
-              600: '#23578e',
-              700: '#1d4672',
+              50: '#F0F6FA',
+              100: '#DCEAF4',
+              200: '#B9D5E9',
+              400: '#72A8D1',
+              500: '#4A89B8',
+              600: '#366D96',
+              700: '#285374',
             },
-            mintbg: '#f8faf8'
-          },
-          boxShadow: {
-            'soft': '0 8px 30px rgba(0,0,0,0.04)',
-            'float': '0 12px 30px -6px rgba(61,122,104,0.4)',
+            surface: '#F4F7F6',
           }
         }
       }
     }
   </script>
   <style>
+    /* 鎖定視口防止 Pixel 10 等行動瀏覽器上下滑動時整頁位移與底欄消失 */
     html, body {
-      height: 100%;
+      position: fixed;
+      inset: 0;
+      width: 100%;
       height: 100dvh;
       overflow: hidden;
       margin: 0;
       padding: 0;
-      position: fixed;
-      width: 100%;
-      inset: 0;
+      background-color: #E6ECEA;
       -webkit-tap-highlight-color: transparent;
-      background-color: #e2e8e5;
     }
-    .hide-scrollbar::-webkit-scrollbar {
+
+    #app-shell {
+      height: 100dvh;
+      max-width: 480px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      background-color: #F4F7F6;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* 獨立內容捲動區 */
+    #main-scroll {
+      flex: 1 1 0%;
+      overflow-y: auto;
+      overscroll-behavior-y: contain;
+      -webkit-overflow-scrolling: touch;
+      padding-bottom: 5.5rem;
+    }
+
+    /* 隱藏捲軸保持美觀 */
+    #main-scroll::-webkit-scrollbar {
       display: none;
     }
-    .hide-scrollbar {
+    #main-scroll {
       -ms-overflow-style: none;
       scrollbar-width: none;
     }
-    .tab-active {
-      color: #3D7A68;
-      font-weight: 700;
+
+    /* 固定底部導航列與安全區域 */
+    #bottom-nav {
+      flex-shrink: 0;
+      padding-bottom: calc(0.6rem + env(safe-area-inset-bottom, 12px));
     }
-    .safe-bottom {
-      padding-bottom: calc(0.6rem + env(safe-area-inset-bottom, 16px));
-    }
-    .content-scrollable {
-      flex: 1 1 0%;
-      overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
-      overscroll-behavior-y: contain;
+
+    /* 懸浮記帳按鈕位置 */
+    #fab-btn {
+      bottom: calc(4.8rem + env(safe-area-inset-bottom, 12px));
     }
   </style>
 </head>
-<body class="flex justify-center items-center text-slate-800 antialiased font-sans select-none">
+<body class="font-sans text-slate-800 antialiased select-none">
 
-  <!-- 手機外框容器：強制鎖在 100dvh 內部，不再跟隨全域滾動 -->
-  <div id="app-wrapper" class="w-full max-w-md h-full h-[100dvh] bg-mintbg flex flex-col relative overflow-hidden shadow-2xl">
+  <div id="app-shell" class="shadow-2xl">
     
-    <!-- 頂部身分切換與狀態列 (高度固定，不捲動) -->
-    <header class="bg-white/95 backdrop-blur-md pt-3 px-4 pb-2.5 border-b border-emerald-100/60 flex items-center justify-between z-30 shrink-0">
+    <!-- ==================== 登入鎖定畫面 (跨裝置單一登入驗證) ==================== -->
+    <div id="login-screen" class="hidden fixed inset-0 z-50 bg-surface flex flex-col justify-center items-center p-6 max-w-[480px] mx-auto">
+      <div class="w-full bg-white rounded-3xl p-7 shadow-lg border border-slate-100 text-center space-y-6">
+        <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-sage-500 to-ocean-500 mx-auto flex items-center justify-center text-white text-2xl shadow-md">
+          <i class="fa-solid fa-leaf"></i>
+        </div>
+        <div>
+          <h1 class="text-xl font-bold text-slate-800">梅吐生活帳本</h1>
+          <p id="login-subtitle" class="text-xs text-slate-500 mt-1.5">請選擇你的身分登入（若他機登入此帳號將自動登出）</p>
+        </div>
+
+        <div id="session-alert-box" class="hidden bg-amber-50 border border-amber-200 text-amber-800 text-xs rounded-2xl p-3 text-left">
+          <i class="fa-solid fa-shield-halved mr-1 text-amber-600"></i>
+          <span id="session-alert-msg">偵測到其他裝置登入了你的帳號，請重新驗證登入。</span>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3.5 pt-1">
+          <button onclick="loginAs('xiaomei')" class="group flex flex-col items-center p-4 rounded-2xl border-2 border-sage-100 bg-sage-50/60 hover:border-sage-500 active:scale-95 transition-all">
+            <div class="w-12 h-12 rounded-full bg-sage-500 text-white flex items-center justify-center text-lg font-bold mb-2 shadow-sm">
+              梅
+            </div>
+            <span class="font-bold text-sage-700 text-sm">我是小梅</span>
+            <span class="text-[11px] text-sage-600/80 mt-0.5">鼠尾草綠主題</span>
+          </button>
+
+          <button onclick="loginAs('toast')" class="group flex flex-col items-center p-4 rounded-2xl border-2 border-ocean-100 bg-ocean-50/60 hover:border-ocean-500 active:scale-95 transition-all">
+            <div class="w-12 h-12 rounded-full bg-ocean-500 text-white flex items-center justify-center text-lg font-bold mb-2 shadow-sm">
+              吐
+            </div>
+            <span class="font-bold text-ocean-700 text-sm">我是吐司</span>
+            <span class="text-[11px] text-ocean-600/80 mt-0.5">清新海藍主題</span>
+          </button>
+        </div>
+
+        <div class="pt-2 border-t border-slate-100">
+          <button onclick="openInitialUrlModal()" class="text-xs text-slate-400 hover:text-slate-600 underline">
+            設定雲端試算表連線網址
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 頂部狀態列 ==================== -->
+    <header id="top-header" class="shrink-0 bg-white/95 backdrop-blur-md border-b border-slate-200/70 px-4 py-3 flex items-center justify-between z-20">
       <div class="flex items-center space-x-2.5">
-        <div id="user-avatar-badge" class="w-8 h-8 rounded-full bg-gradient-to-tr from-sage-500 to-emerald-400 flex items-center justify-center text-white shadow-sm font-bold text-xs">
+        <div id="header-avatar" class="w-9 h-9 rounded-full bg-sage-500 text-white flex items-center justify-center font-bold text-sm shadow-sm">
           梅
         </div>
         <div>
-          <span class="text-[10px] text-slate-400 font-semibold tracking-wider uppercase">目前登入視角</span>
-          <div class="flex items-center space-x-1 cursor-pointer" onclick="toggleUserDropdown()">
-            <span id="current-user-name" class="text-sm font-bold text-slate-800">小梅</span>
-            <i class="ph ph-caret-down text-xs text-slate-400"></i>
+          <div class="flex items-center space-x-1.5">
+            <span id="header-username" class="font-bold text-sm text-slate-800">小梅</span>
+            <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-500 font-medium">已登入</span>
           </div>
+          <!-- 即時雲端同步狀態燈號 -->
+          <button onclick="pullFromCloud(true)" id="sync-status-btn" class="flex items-center space-x-1 text-[11px] text-slate-400 mt-0.5 active:opacity-70">
+            <span id="sync-dot" class="w-2 h-2 rounded-full bg-slate-300"></span>
+            <span id="sync-text">尚未設定雲端網址</span>
+          </button>
         </div>
       </div>
 
-      <!-- 切換按鈕 -->
       <div class="flex items-center space-x-2">
-        <button onclick="switchCurrentUser()" class="px-2.5 py-1 bg-sage-50 border border-sage-200 text-sage-600 rounded-full text-xs font-semibold flex items-center space-x-1 active:scale-95 transition">
-          <i class="ph ph-arrows-left-right text-xs"></i>
-          <span id="switch-btn-label">切換至 吐司</span>
+        <button onclick="pullFromCloud(true)" title="立即同步" class="w-8 h-8 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center active:scale-90 transition">
+          <i id="sync-spin-icon" class="fa-solid fa-arrows-rotate text-xs"></i>
         </button>
-      </div>
-
-      <!-- 身分選單 Dropdown -->
-      <div id="user-dropdown" class="hidden absolute top-14 left-4 bg-white rounded-2xl shadow-xl border border-slate-100 p-2 w-48 z-40">
-        <div onclick="selectUser('user_a')" class="flex items-center p-2 rounded-xl hover:bg-sage-50 cursor-pointer space-x-2.5">
-          <span class="w-7 h-7 rounded-full bg-sage-100 text-sage-700 flex items-center justify-center font-bold text-xs">梅</span>
-          <div>
-            <div class="text-xs font-bold text-slate-800">小梅 (User A)</div>
-            <div class="text-[10px] text-sage-600 font-medium">當前裝置登入</div>
-          </div>
-        </div>
-        <div onclick="selectUser('user_b')" class="flex items-center p-2 rounded-xl hover:bg-ocean-50 cursor-pointer space-x-2.5">
-          <span class="w-7 h-7 rounded-full bg-ocean-100 text-ocean-700 flex items-center justify-center font-bold text-xs">吐</span>
-          <div>
-            <div class="text-xs font-bold text-slate-800">吐司 (User B)</div>
-            <div class="text-[10px] text-slate-400 font-medium">線上同步中</div>
-          </div>
-        </div>
-        <div class="border-t border-slate-100 mt-1 pt-1 text-[10px] text-slate-400 px-2 flex items-center justify-between">
-          <span>Session Guard 安全守護</span>
-          <i class="ph ph-shield-check text-emerald-500 text-sm"></i>
-        </div>
+        <button onclick="logoutUser()" class="px-2.5 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-medium active:scale-95 transition">
+          切換帳號
+        </button>
       </div>
     </header>
 
-    <!-- 主內容滑動區域 (只有此區域會捲動，上下都不會被推移) -->
-    <main class="content-scrollable hide-scrollbar pb-28 relative" id="main-content">
-      
-      <!-- ================= 頁面 1: 首頁儀表板 ================= -->
-      <section id="tab-home" class="p-4 space-y-4">
-        <!-- 今日消費對比進度條卡片 -->
-        <div class="bg-white rounded-3xl p-4 shadow-soft border border-slate-100">
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center">
-              <i class="ph ph-chart-bar mr-1.5 text-sage-500 text-base"></i> 今日消費條 (Daily Bar)
-            </span>
-            <span id="today-date-text" class="text-xs font-medium text-slate-400">2026/11/11</span>
-          </div>
+    <!-- ==================== 主捲動內容區 ==================== -->
+    <main id="main-scroll" class="px-4 pt-4 space-y-4">
 
-          <!-- 對比條 (鼠尾草綠 vs 海洋藍) -->
-          <div class="h-4 w-full bg-slate-100 rounded-full flex overflow-hidden p-0.5 border border-slate-200/60 my-3">
-            <div id="bar-user-a" class="bg-sage-500 h-full rounded-l-full transition-all duration-500" style="width: 50%;"></div>
-            <div id="bar-user-b" class="bg-ocean-500 h-full rounded-r-full transition-all duration-500" style="width: 50%;"></div>
-          </div>
-
-          <!-- 數額明細 -->
-          <div class="grid grid-cols-2 gap-2 pt-1 text-center">
-            <div class="bg-sage-50/70 p-2.5 rounded-2xl border border-sage-100">
-              <div class="flex items-center justify-center space-x-1.5 mb-0.5">
-                <span class="w-2 h-2 rounded-full bg-sage-500"></span>
-                <span class="text-[11px] font-medium text-slate-600" id="label-user-a">小梅</span>
-              </div>
-              <div class="text-base font-extrabold text-sage-700" id="total-user-a-today">$0</div>
-            </div>
-            <div class="bg-ocean-50/70 p-2.5 rounded-2xl border border-ocean-100">
-              <div class="flex items-center justify-center space-x-1.5 mb-0.5">
-                <span class="w-2 h-2 rounded-full bg-ocean-500"></span>
-                <span class="text-[11px] font-medium text-slate-600" id="label-user-b">吐司</span>
-              </div>
-              <div class="text-base font-extrabold text-ocean-700" id="total-user-b-today">$0</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 幫對方支付 / 代墊即時結算卡片 -->
-        <div class="bg-white rounded-3xl p-4 shadow-soft border border-slate-100 space-y-3">
+      <!-- 頁籤 1：首頁總覽 -->
+      <section id="tab-home" class="space-y-4">
+        
+        <!-- 今日消費對比條卡片 -->
+        <div class="bg-white rounded-3xl p-4 shadow-sm border border-slate-100 space-y-3">
           <div class="flex items-center justify-between">
-            <div class="flex items-center space-x-1.5">
-              <i class="ph ph-hand-coins text-sage-500 text-lg"></i>
-              <h3 class="text-xs font-bold text-slate-700 tracking-wide">代墊分攤與結算</h3>
+            <div class="flex items-center space-x-2">
+              <span class="w-2 h-5 rounded-full bg-gradient-to-b from-sage-500 to-ocean-500"></span>
+              <h2 class="font-bold text-sm text-slate-800">今日消費進度條</h2>
             </div>
-            <span class="text-[10px] px-2 py-0.5 rounded-full bg-slate-50 text-slate-500 font-medium border border-slate-200">
-              即時累計
-            </span>
+            <span id="today-date-label" class="text-xs font-medium text-slate-400">2026-11-12</span>
           </div>
 
-          <div class="space-y-2">
-            <div class="flex justify-between items-center bg-slate-50/80 p-2.5 rounded-2xl border border-slate-100">
-              <div class="flex items-center space-x-2">
-                <div class="w-7 h-7 rounded-full bg-sage-100 text-sage-700 flex items-center justify-center text-xs">
-                  <i class="ph ph-wallet"></i>
-                </div>
-                <span class="text-xs text-slate-600" id="my-helped-label">今日我幫對方墊付</span>
+          <!-- 雙人花費金額數字 -->
+          <div class="grid grid-cols-2 gap-3 pt-1">
+            <div class="bg-sage-50/80 rounded-2xl p-3 border border-sage-100">
+              <div class="flex items-center justify-between text-xs text-sage-700 font-medium">
+                <span><i class="fa-solid fa-circle text-[8px] text-sage-500 mr-1"></i>小梅今日</span>
+                <span id="xiaomei-today-pct" class="text-[11px] opacity-80">0%</span>
               </div>
-              <span class="text-sm font-bold text-slate-800" id="my-helped-today">$0</span>
+              <div id="xiaomei-today-amount" class="text-lg font-bold text-sage-700 mt-1">$0</div>
             </div>
 
-            <div class="flex justify-between items-center bg-slate-50/80 p-2.5 rounded-2xl border border-slate-100">
-              <div class="flex items-center space-x-2">
-                <div class="w-7 h-7 rounded-full bg-ocean-100 text-ocean-700 flex items-center justify-center text-xs">
-                  <i class="ph ph-arrows-split"></i>
-                </div>
-                <span class="text-xs text-slate-600" id="partner-helped-label">今日對方幫我墊付</span>
+            <div class="bg-ocean-50/80 rounded-2xl p-3 border border-ocean-100">
+              <div class="flex items-center justify-between text-xs text-ocean-700 font-medium">
+                <span><i class="fa-solid fa-circle text-[8px] text-ocean-500 mr-1"></i>吐司今日</span>
+                <span id="toast-today-pct" class="text-[11px] opacity-80">0%</span>
               </div>
-              <span class="text-sm font-bold text-slate-800" id="partner-helped-today">$0</span>
-            </div>
-
-            <!-- 結算建議 -->
-            <div id="balance-banner" class="mt-3 p-3 rounded-2xl text-xs flex items-center justify-between font-medium bg-emerald-50 text-emerald-800 border border-emerald-200/60">
-              <span class="flex items-center space-x-1.5">
-                <i class="ph ph-scales text-sm"></i>
-                <span id="balance-text">雙方目前收支平分，無須找零！</span>
-              </span>
-              <button onclick="settleAccountsPrompt()" class="text-[11px] bg-white px-2.5 py-1 rounded-xl border border-emerald-300 text-emerald-800 font-bold active:scale-95 shadow-sm">一鍵結清</button>
+              <div id="toast-today-amount" class="text-lg font-bold text-ocean-700 mt-1">$0</div>
             </div>
           </div>
-        </div>
 
-        <!-- 今日開銷快捷清單 -->
-        <div>
-          <div class="flex items-center justify-between mb-2 px-1">
-            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">今日最新收支</h3>
-            <button onclick="switchTab('records')" class="text-xs text-sage-600 font-semibold hover:underline">查看全部</button>
-          </div>
-          <div id="home-today-list" class="space-y-2">
-            <!-- 動態插入今日紀錄 -->
-          </div>
-        </div>
-      </section>
-
-      <!-- ================= 頁面 2: 明細串流 ================= -->
-      <section id="tab-records" class="p-4 space-y-3 hidden">
-        <!-- 篩選列 -->
-        <div class="flex space-x-2 overflow-x-auto hide-scrollbar pb-1">
-          <button onclick="setRecordFilter('all')" id="filter-all" class="filter-btn px-3.5 py-1.5 rounded-full text-xs font-medium bg-sage-500 text-white shadow-sm">全部紀錄</button>
-          <button onclick="setRecordFilter('mine')" id="filter-mine" class="filter-btn px-3.5 py-1.5 rounded-full text-xs font-medium bg-white text-slate-600 border border-slate-200">我的支出</button>
-          <button onclick="setRecordFilter('partner')" id="filter-partner" class="filter-btn px-3.5 py-1.5 rounded-full text-xs font-medium bg-white text-slate-600 border border-slate-200">伴侶支出</button>
-        </div>
-
-        <!-- 帳目流水清單 -->
-        <div id="records-stream" class="space-y-2.5">
-          <!-- 帳目卡片動態渲染 -->
-        </div>
-      </section>
-
-      <!-- ================= 頁面 3: 共用情侶行事曆 ================= -->
-      <section id="tab-calendar" class="p-4 space-y-4 hidden">
-        <!-- 月曆卡片 -->
-        <div class="bg-white rounded-3xl p-4 shadow-soft border border-slate-100">
-          <div class="flex items-center justify-between mb-3">
-            <h3 class="text-sm font-bold text-slate-800" id="calendar-month-year">2026年 11月</h3>
-            <div class="flex space-x-1">
-              <button onclick="changeMonth(-1)" class="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 active:scale-95"><i class="ph ph-caret-left"></i></button>
-              <button onclick="changeMonth(1)" class="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 active:scale-95"><i class="ph ph-caret-right"></i></button>
+          <!-- 視覺化消費比例條 -->
+          <div class="space-y-1.5">
+            <div class="w-full h-3.5 bg-slate-100 rounded-full overflow-hidden flex p-0.5">
+              <div id="bar-xiaomei" class="bg-sage-500 h-full rounded-l-full transition-all duration-500" style="width: 50%"></div>
+              <div id="bar-toast" class="bg-ocean-500 h-full rounded-r-full transition-all duration-500" style="width: 50%"></div>
+            </div>
+            <div class="flex justify-between text-[11px] text-slate-400 px-0.5">
+              <span>今日共同總花費：<strong id="combined-today-amount" class="text-slate-600">$0</strong></span>
+              <span id="monthly-total-label">本月累計：$0</span>
             </div>
           </div>
-          <!-- 星期標題 -->
-          <div class="grid grid-cols-7 text-center text-[11px] font-bold text-slate-400 mb-2">
-            <span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span>
-          </div>
-          <!-- 日曆格 -->
-          <div id="calendar-grid" class="grid grid-cols-7 gap-1 text-xs">
-            <!-- 動態繪製日曆格 -->
-          </div>
         </div>
 
-        <!-- 選取日期的行程與紀念日活動 -->
-        <div class="bg-white rounded-3xl p-4 shadow-soft border border-slate-100">
-          <div class="flex items-center justify-between mb-3">
-            <div class="flex items-center space-x-1.5">
-              <i class="ph ph-calendar-star text-sage-500"></i>
-              <h4 class="text-xs font-bold text-slate-700" id="selected-date-title">11月11日 約會與行程</h4>
-            </div>
-            <button onclick="openAddEventModal()" class="text-xs text-sage-600 font-semibold flex items-center space-x-1 active:scale-95">
-              <i class="ph ph-plus-circle text-sm"></i>
-              <span>新增行程</span>
+        <!-- 今日幫對方代付 & 累積結算卡片 -->
+        <div class="bg-white rounded-3xl p-4 shadow-sm border border-slate-100 space-y-3">
+          <div class="flex items-center justify-between">
+            <h2 class="font-bold text-sm text-slate-800 flex items-center">
+              <i class="fa-solid fa-hand-holding-heart text-sage-500 mr-2"></i>幫對方支付與結算
+            </h2>
+            <button onclick="openSettleConfirm()" id="settle-btn" class="text-xs px-2.5 py-1 rounded-xl bg-slate-100 text-slate-600 font-medium active:scale-95 transition">
+              一鍵結清
             </button>
           </div>
 
-          <div id="calendar-events-list" class="space-y-2">
-            <!-- 該日行程項目 -->
+          <div class="grid grid-cols-2 gap-2.5">
+            <div class="p-3 rounded-2xl bg-slate-50 border border-slate-100">
+              <div class="text-[11px] text-slate-500">今日我幫對方付</div>
+              <div id="today-paid-for-partner" class="text-base font-bold text-slate-800 mt-0.5">$0</div>
+            </div>
+            <div class="p-3 rounded-2xl bg-slate-50 border border-slate-100">
+              <div class="text-[11px] text-slate-500">今日對方幫我付</div>
+              <div id="today-partner-paid-for-me" class="text-base font-bold text-slate-800 mt-0.5">$0</div>
+            </div>
+          </div>
+
+          <!-- 累積差額提示條 -->
+          <div id="net-balance-banner" class="rounded-2xl p-3 bg-sage-50 border border-sage-200/70 flex items-center justify-between">
+            <span id="net-balance-text" class="text-xs font-medium text-sage-700">目前雙方收支平衡，互不相欠</span>
+            <span id="net-balance-amount" class="text-sm font-bold text-sage-700">$0</span>
+          </div>
+        </div>
+
+        <!-- 今日消費明細列表 -->
+        <div class="space-y-2.5">
+          <div class="flex items-center justify-between px-1">
+            <h3 class="font-bold text-sm text-slate-700">今日消費明細</h3>
+            <button onclick="switchTab('records')" class="text-xs text-sage-600 font-medium">查看全部 &gt;</button>
+          </div>
+          <div id="today-records-list" class="space-y-2.5">
+            <!-- 動態渲染 -->
           </div>
         </div>
       </section>
 
-      <!-- ================= 頁面 4: 設定與雲端後台 (極簡正式版) ================= -->
-      <section id="tab-settings" class="p-4 space-y-4 hidden">
-        <!-- 伴侶連線狀態 -->
-        <div class="bg-white rounded-3xl p-4 shadow-soft border border-slate-100">
-          <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">伴侶帳號連線</h3>
-          <div class="flex items-center justify-between p-3 bg-gradient-to-r from-sage-50 to-ocean-50 rounded-2xl border border-slate-100">
-            <div class="flex items-center space-x-3">
-              <div class="w-10 h-10 rounded-full bg-gradient-to-br from-sage-500 to-ocean-500 text-white flex items-center justify-center font-bold text-sm shadow-sm">
-                🌿
-              </div>
-              <div>
-                <div class="text-sm font-bold text-slate-800">小梅 & 吐司</div>
-                <div class="text-xs text-slate-500">甜蜜帳本與約會行程</div>
-              </div>
-            </div>
-            <span class="text-[10px] px-2.5 py-1 bg-white text-emerald-700 rounded-full font-bold shadow-sm border border-emerald-100 flex items-center space-x-1">
-              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span>連線中</span>
-            </span>
+      <!-- 頁籤 2：全部消費明細 -->
+      <section id="tab-records" class="hidden space-y-3">
+        <div class="bg-white rounded-3xl p-3.5 shadow-sm border border-slate-100 flex items-center justify-between gap-2">
+          <div class="flex space-x-1.5 overflow-x-auto">
+            <button onclick="setRecordFilter('all')" id="filter-all" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-sage-500 text-white transition">全部</button>
+            <button onclick="setRecordFilter('xiaomei')" id="filter-xiaomei" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 transition">小梅</button>
+            <button onclick="setRecordFilter('toast')" id="filter-toast" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 transition">吐司</button>
+            <button onclick="setRecordFilter('helper')" id="filter-helper" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 transition">代付/AA</button>
+          </div>
+          <span id="records-count-badge" class="text-[11px] text-slate-400 shrink-0">0 筆</span>
+        </div>
+
+        <div id="all-records-list" class="space-y-2.5">
+          <!-- 動態渲染 -->
+        </div>
+      </section>
+
+      <!-- 頁籤 3：共用行事曆 -->
+      <section id="tab-calendar" class="hidden space-y-4">
+        <div class="bg-white rounded-3xl p-4 shadow-sm border border-slate-100">
+          <!-- 月份切換標頭 -->
+          <div class="flex items-center justify-between mb-3">
+            <button onclick="changeCalendarMonth(-1)" class="w-8 h-8 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center active:scale-90">
+              <i class="fa-solid fa-chevron-left text-xs"></i>
+            </button>
+            <h2 id="calendar-month-title" class="font-bold text-sm text-slate-800">2026年 11月</h2>
+            <button onclick="changeCalendarMonth(1)" class="w-8 h-8 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center active:scale-90">
+              <i class="fa-solid fa-chevron-right text-xs"></i>
+            </button>
+          </div>
+
+          <!-- 星期標頭 -->
+          <div class="grid grid-cols-7 text-center text-[11px] font-semibold text-slate-400 pb-2">
+            <div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div>
+          </div>
+
+          <!-- 日曆格子 -->
+          <div id="calendar-grid" class="grid grid-cols-7 gap-1 text-center">
+            <!-- 動態產生 -->
           </div>
         </div>
 
-        <!-- Google 試算表雲端同步 (乾淨正式介面，已移除落落長的程式碼教學) -->
-        <div class="bg-white rounded-3xl p-4 shadow-soft border border-slate-100 space-y-3">
+        <!-- 選取日期的行程與花費 -->
+        <div class="bg-white rounded-3xl p-4 shadow-sm border border-slate-100 space-y-3">
           <div class="flex items-center justify-between">
-            <div class="flex items-center space-x-1.5">
-              <i class="ph ph-google-logo text-emerald-600 text-base"></i>
-              <h3 class="text-xs font-bold text-slate-700">Google 試算表雲端同步</h3>
+            <div>
+              <h3 id="selected-cal-date-title" class="font-bold text-sm text-slate-800">2026-11-12 行程</h3>
+              <p class="text-[11px] text-slate-400">雙方共用約會、紀念日與繳費提醒</p>
             </div>
-            <span id="sync-status-badge" class="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 font-medium">尚未同步</span>
+            <button onclick="openEventModal()" class="px-3 py-1.5 rounded-xl bg-ocean-500 text-white text-xs font-semibold shadow-sm active:scale-95 transition">
+              <i class="fa-solid fa-plus mr-1"></i>新增行程
+            </button>
+          </div>
+
+          <div id="selected-date-events-list" class="space-y-2">
+            <!-- 動態產生 -->
+          </div>
+        </div>
+      </section>
+
+      <!-- 頁籤 4：設定與付款方式 -->
+      <section id="tab-settings" class="hidden space-y-4">
+        
+        <!-- 雲端試算表連線設定 -->
+        <div class="bg-white rounded-3xl p-4 shadow-sm border border-slate-100 space-y-3">
+          <div class="flex items-center justify-between">
+            <h2 class="font-bold text-sm text-slate-800 flex items-center">
+              <i class="fa-solid fa-cloud text-ocean-500 mr-2"></i>Google 試算表同步設定
+            </h2>
+            <span id="settings-sync-badge" class="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">未連線</span>
           </div>
 
           <div class="space-y-1.5">
-            <label class="text-[11px] font-semibold text-slate-500">Google Apps Script Web App 網址</label>
-            <input type="url" id="sheets-url-input" placeholder="https://script.google.com/macros/s/.../exec" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:border-sage-400">
+            <label class="text-xs font-medium text-slate-600">Apps Script 網頁應用程式網址</label>
+            <input id="gas-url-input" type="url" placeholder="https://script.google.com/macros/s/.../exec" class="w-full px-3 py-2.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs text-slate-700 focus:outline-none focus:border-sage-500">
           </div>
 
-          <div class="flex space-x-2 pt-1">
-            <button onclick="saveAndTestSheetsUrl()" class="flex-1 py-2.5 bg-sage-500 hover:bg-sage-600 text-white rounded-xl font-bold text-xs shadow-sm active:scale-95 transition flex items-center justify-center space-x-1">
-              <i class="ph ph-floppy-disk text-sm"></i>
-              <span>儲存網址</span>
+          <div class="grid grid-cols-2 gap-2 pt-1">
+            <button onclick="saveGasUrlAndPull()" class="py-2.5 px-3 rounded-2xl bg-sage-500 text-white text-xs font-bold shadow-sm active:scale-95 transition">
+              <i class="fa-solid fa-cloud-arrow-down mr-1"></i>儲存並從試算表載入
             </button>
-            <button onclick="syncWithGoogleSheets()" class="flex-1 py-2.5 bg-ocean-500 hover:bg-ocean-600 text-white rounded-xl font-bold text-xs shadow-sm active:scale-95 transition flex items-center justify-center space-x-1">
-              <i class="ph ph-arrows-clockwise text-sm"></i>
-              <span>立即雙向同步</span>
+            <button onclick="pushAllLocalToCloud()" class="py-2.5 px-3 rounded-2xl bg-ocean-500 text-white text-xs font-bold shadow-sm active:scale-95 transition">
+              <i class="fa-solid fa-cloud-arrow-up mr-1"></i>將本機資料上傳試算表
             </button>
           </div>
-          <p class="text-[10px] text-slate-400 text-center">貼上您部署好的 Web App 網址即可雙向即時保存帳目與行程</p>
+          <p id="last-sync-detail" class="text-[11px] text-slate-400">每次新增記帳或行程時，系統會自動即時寫入試算表。</p>
         </div>
 
-        <!-- 付款方式管理 -->
-        <div class="bg-white rounded-3xl p-4 shadow-soft border border-slate-100">
-          <div class="flex items-center justify-between mb-3">
-            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">自訂付款方式</h3>
-            <button onclick="openAddPaymentModal()" class="text-xs text-sage-600 font-bold flex items-center space-x-1">
-              <i class="ph ph-plus"></i>
-              <span>新增方式</span>
+        <!-- 自訂付款方式管理 -->
+        <div class="bg-white rounded-3xl p-4 shadow-sm border border-slate-100 space-y-3">
+          <div class="flex items-center justify-between">
+            <h2 class="font-bold text-sm text-slate-800 flex items-center">
+              <i class="fa-solid fa-wallet text-sage-500 mr-2"></i>付款方式管理
+            </h2>
+          </div>
+
+          <div class="flex space-x-2">
+            <input id="new-payment-input" type="text" placeholder="輸入新付款方式（如：台新卡、街口）" class="flex-1 px-3 py-2 rounded-2xl bg-slate-50 border border-slate-200 text-xs focus:outline-none focus:border-sage-500">
+            <button onclick="addPaymentMethod()" class="px-4 py-2 rounded-2xl bg-sage-500 text-white text-xs font-bold active:scale-95 transition">
+              新增
             </button>
           </div>
-          <div id="payment-methods-list" class="space-y-2">
-            <!-- 支付方式清單 -->
+
+          <div id="payment-methods-list" class="flex flex-wrap gap-2 pt-1">
+            <!-- 動態產生付款方式標籤 -->
           </div>
         </div>
 
-        <!-- 裝置安全機制 (Session Guard) -->
-        <div class="bg-white rounded-3xl p-4 shadow-soft border border-slate-100 text-xs text-slate-600 space-y-2">
-          <div class="font-bold text-slate-800 flex items-center space-x-1.5">
-            <i class="ph ph-shield-check text-base text-sage-500"></i>
-            <span>跨裝置單一登入守護 (Session Guard)</span>
-          </div>
-          <p class="text-slate-400 leading-relaxed text-[11px]">
-            為保護雙方隱私，若同一帳號在另一台手機登入，本機工作階段將自動失效並提示重新登入。
+        <!-- 帳號安全資訊 -->
+        <div class="bg-white rounded-3xl p-4 shadow-sm border border-slate-100 space-y-2">
+          <h2 class="font-bold text-sm text-slate-800 flex items-center">
+            <i class="fa-solid fa-shield-halved text-sage-500 mr-2"></i>單一裝置登入保護
+          </h2>
+          <p class="text-xs text-slate-500 leading-relaxed">
+            目前登入帳號：<strong id="settings-user-label" class="text-slate-700">小梅</strong>。若你或伴侶在其他手機登入相同帳號，本機將在下次同步時自動登出以確保帳務安全。
           </p>
-          <button onclick="simulateForceLogout()" class="w-full mt-2 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl font-medium text-xs active:scale-95 transition">
-            模擬測試：被其他裝置登入踢出
-          </button>
+          <div class="pt-1">
+            <button onclick="clearLocalCacheOnly()" class="text-xs text-rose-500 font-medium underline">
+              清除本機暫存並重新從雲端拉取
+            </button>
+          </div>
         </div>
+
       </section>
 
     </main>
 
-    <!-- 浮動新增記帳按鈕 (FAB)：鎖定在底部安全區上方 -->
-    <div class="absolute right-5 z-30 pointer-events-auto" style="bottom: calc(4.75rem + env(safe-area-inset-bottom, 16px));">
-      <button onclick="openAddRecordModal()" class="w-13 h-13 p-3.5 bg-gradient-to-r from-sage-500 to-emerald-600 text-white rounded-full shadow-float flex items-center justify-center active:scale-90 transition transform hover:rotate-90">
-        <i class="ph ph-plus text-2xl font-bold"></i>
-      </button>
-    </div>
+    <!-- ==================== 懸浮新增記帳按鈕 (FAB) ==================== -->
+    <button id="fab-btn" onclick="openRecordModal()" class="fixed right-5 z-30 w-14 h-14 rounded-full bg-gradient-to-tr from-sage-600 to-ocean-500 text-white shadow-lg flex items-center justify-center text-xl active:scale-90 transition-transform">
+      <i class="fa-solid fa-plus"></i>
+    </button>
 
-    <!-- 底部 Tab 導航列：固定於容器底部，不再隨滑動消失 -->
-    <nav class="shrink-0 bg-white/95 backdrop-blur-md border-t border-slate-100 px-6 pt-2 safe-bottom flex justify-between items-center z-30">
-      <button onclick="switchTab('home')" id="nav-home" class="flex flex-col items-center text-xs tab-active transition">
-        <i class="ph ph-house text-xl mb-0.5"></i>
-        <span>首頁</span>
+    <!-- ==================== 固定底部導航列 ==================== -->
+    <nav id="bottom-nav" class="bg-white/95 backdrop-blur-md border-t border-slate-200/80 px-2 pt-2 grid grid-cols-4 text-center z-30">
+      <button onclick="switchTab('home')" id="nav-home" class="flex flex-col items-center justify-center py-1 text-sage-600 font-bold">
+        <i class="fa-solid fa-house text-base mb-0.5"></i>
+        <span class="text-[11px]">首頁</span>
       </button>
-      <button onclick="switchTab('records')" id="nav-records" class="flex flex-col items-center text-xs text-slate-400 transition">
-        <i class="ph ph-receipt text-xl mb-0.5"></i>
-        <span>明細</span>
+      <button onclick="switchTab('records')" id="nav-records" class="flex flex-col items-center justify-center py-1 text-slate-400 font-medium">
+        <i class="fa-solid fa-receipt text-base mb-0.5"></i>
+        <span class="text-[11px]">明細</span>
       </button>
-      <button onclick="switchTab('calendar')" id="nav-calendar" class="flex flex-col items-center text-xs text-slate-400 transition">
-        <i class="ph ph-calendar-blank text-xl mb-0.5"></i>
-        <span>行事曆</span>
+      <button onclick="switchTab('calendar')" id="nav-calendar" class="flex flex-col items-center justify-center py-1 text-slate-400 font-medium">
+        <i class="fa-solid fa-calendar-days text-base mb-0.5"></i>
+        <span class="text-[11px]">行事曆</span>
       </button>
-      <button onclick="switchTab('settings')" id="nav-settings" class="flex flex-col items-center text-xs text-slate-400 transition">
-        <i class="ph ph-gear text-xl mb-0.5"></i>
-        <span>設定</span>
+      <button onclick="switchTab('settings')" id="nav-settings" class="flex flex-col items-center justify-center py-1 text-slate-400 font-medium">
+        <i class="fa-solid fa-gear text-base mb-0.5"></i>
+        <span class="text-[11px]">設定</span>
       </button>
     </nav>
 
-    <!-- ================= 彈窗 1: 新增記帳彈窗 ================= -->
-    <div id="modal-add-record" class="hidden fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-end justify-center p-0">
-      <div class="bg-white w-full max-w-md rounded-t-3xl p-5 space-y-4 max-h-[90vh] overflow-y-auto">
+    <!-- ==================== 彈窗：新增記帳 ==================== -->
+    <div id="record-modal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-end justify-center max-w-[480px] mx-auto">
+      <div class="bg-white w-full rounded-t-3xl p-5 space-y-4 max-h-[90dvh] overflow-y-auto animate-slide-up">
         <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-          <h3 class="font-bold text-slate-800 text-base flex items-center">
-            <span class="w-2.5 h-2.5 rounded-full bg-sage-500 mr-2"></span>
-            新增消費紀錄
-          </h3>
-          <button onclick="closeAddRecordModal()" class="text-slate-400 hover:text-slate-600 text-lg">
-            <i class="ph ph-x"></i>
+          <h3 class="font-bold text-base text-slate-800">新增消費紀錄</h3>
+          <button onclick="closeRecordModal()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center">
+            <i class="fa-solid fa-xmark"></i>
           </button>
         </div>
 
         <!-- 金額輸入 -->
         <div>
-          <label class="text-xs font-semibold text-slate-400">支出金額 (NT$)</label>
+          <label class="text-xs font-semibold text-slate-500">消費金額 (NT$)</label>
           <div class="relative mt-1">
-            <span class="absolute left-3.5 top-2 text-xl font-bold text-slate-400">$</span>
-            <input type="number" id="input-amount" placeholder="0" class="w-full pl-9 pr-4 py-2 text-2xl font-bold bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:border-sage-500">
+            <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-lg font-bold text-slate-400">$</span>
+            <input id="rec-amount" type="number" inputmode="decimal" placeholder="0" class="w-full pl-9 pr-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-xl font-bold text-slate-800 focus:outline-none focus:border-sage-500">
           </div>
         </div>
 
-        <!-- 分類選擇 -->
-        <div>
-          <label class="text-xs font-semibold text-slate-400">消費分類</label>
-          <div class="grid grid-cols-4 gap-2 mt-1.5" id="category-selector">
-            <!-- 預設分類項目 -->
-          </div>
-        </div>
-
-        <!-- 付款方式 -->
-        <div>
-          <label class="text-xs font-semibold text-slate-400">付款方式</label>
-          <select id="select-payment" class="w-full mt-1 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-700">
-            <!-- 動態填充自訂付款方式 -->
-          </select>
-        </div>
-
-        <!-- 分攤與幫對方代墊機制 -->
-        <div class="bg-slate-50 p-3 rounded-2xl border border-slate-200/60 space-y-2">
-          <label class="text-xs font-bold text-slate-700 block">帳目歸屬與分攤</label>
-          <div class="grid grid-cols-3 gap-1.5">
-            <button type="button" onclick="setSplitType('personal')" id="split-btn-personal" class="split-opt py-1.5 px-2 rounded-xl text-xs font-medium bg-white text-sage-600 border border-sage-300">個人自付</button>
-            <button type="button" onclick="setSplitType('aa')" id="split-btn-aa" class="split-opt py-1.5 px-2 rounded-xl text-xs font-medium bg-white/70 text-slate-600 border border-transparent">雙方平攤 (AA)</button>
-            <button type="button" onclick="setSplitType('for_partner')" id="split-btn-for_partner" class="split-opt py-1.5 px-2 rounded-xl text-xs font-medium bg-white/70 text-slate-600 border border-transparent">我幫對方付</button>
-          </div>
-          <p id="split-hint" class="text-[11px] text-slate-500">由我個人全額吸收，不影響對方應還款項。</p>
-        </div>
-
-        <!-- 關鍵機制：隱私保護模式 -->
-        <div class="p-3 bg-amber-50/80 border border-amber-200/60 rounded-2xl flex items-start space-x-3">
-          <input type="checkbox" id="check-private" class="mt-0.5 rounded text-amber-600 focus:ring-amber-500 w-4 h-4 cursor-pointer">
-          <div class="flex-1">
-            <label for="check-private" class="text-xs font-bold text-amber-900 flex items-center cursor-pointer">
-              <i class="ph ph-lock-key mr-1 text-sm"></i> 向伴侶隱藏項目明細 (保密模式)
-            </label>
-            <p class="text-[10px] text-amber-700 mt-0.5">
-              對方只會看見「🔒 伴侶保密支出」，品項不公開，但金額依然計入今日總花費與統計，適合準備驚喜禮物！
-            </p>
-          </div>
-        </div>
-
-        <!-- 品項備註與日期 -->
-        <div class="grid grid-cols-2 gap-2">
+        <!-- 項目名稱與日期 -->
+        <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="text-xs font-semibold text-slate-400">項目品項 / 備註</label>
-            <input type="text" id="input-title" placeholder="如：晚餐、咖啡" class="w-full mt-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs">
+            <label class="text-xs font-semibold text-slate-500">消費項目</label>
+            <input id="rec-title" type="text" placeholder="例如：晚餐、咖啡" class="w-full mt-1 px-3 py-2.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs focus:outline-none focus:border-sage-500">
           </div>
           <div>
-            <label class="text-xs font-semibold text-slate-400">日期</label>
-            <input type="date" id="input-date" class="w-full mt-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs">
+            <label class="text-xs font-semibold text-slate-500">日期</label>
+            <input id="rec-date" type="date" class="w-full mt-1 px-3 py-2.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs focus:outline-none focus:border-sage-500">
           </div>
         </div>
 
-        <!-- 提交按鈕 -->
-        <button onclick="saveRecord()" class="w-full py-3 bg-gradient-to-r from-sage-500 to-emerald-600 text-white rounded-2xl font-bold text-sm shadow-md active:scale-95 transition">
-          完成記帳
+        <!-- 分類與付款方式 -->
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-xs font-semibold text-slate-500">分類</label>
+            <select id="rec-category" class="w-full mt-1 px-3 py-2.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs focus:outline-none focus:border-sage-500">
+              <option value="餐飲">🍽️ 餐飲</option>
+              <option value="日常">🛒 日常用品</option>
+              <option value="交通">🚇 交通</option>
+              <option value="約會">🌿 約會娛樂</option>
+              <option value="居住">🏠 房租水電</option>
+              <option value="服飾">👕 服飾美容</option>
+              <option value="禮物">🎁 驚喜禮物</option>
+              <option value="其他">📦 其他</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-xs font-semibold text-slate-500">付款方式</label>
+            <select id="rec-payment" class="w-full mt-1 px-3 py-2.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs focus:outline-none focus:border-sage-500">
+              <!-- 動態填入 -->
+            </select>
+          </div>
+        </div>
+
+        <!-- 分攤與代付選項 -->
+        <div>
+          <label class="text-xs font-semibold text-slate-500">付款歸屬（是否幫對方支付）</label>
+          <div class="grid grid-cols-3 gap-2 mt-1.5">
+            <button type="button" onclick="selectSplitType('self')" id="split-self" class="py-2 px-2 rounded-2xl border-2 border-sage-500 bg-sage-50 text-sage-700 text-xs font-bold text-center transition">
+              各自負擔
+            </button>
+            <button type="button" onclick="selectSplitType('aa')" id="split-aa" class="py-2 px-2 rounded-2xl border border-slate-200 bg-slate-50 text-slate-600 text-xs font-medium text-center transition">
+              幫付一半(AA)
+            </button>
+            <button type="button" onclick="selectSplitType('for_partner')" id="split-for_partner" class="py-2 px-2 rounded-2xl border border-slate-200 bg-slate-50 text-slate-600 text-xs font-medium text-center transition">
+              全額幫對方付
+            </button>
+          </div>
+        </div>
+
+        <!-- 隱私保密開關 -->
+        <label class="flex items-center justify-between p-3 rounded-2xl bg-amber-50/70 border border-amber-200/70 cursor-pointer">
+          <div class="flex items-center space-x-2.5">
+            <i class="fa-solid fa-lock text-amber-600 text-sm"></i>
+            <div>
+              <div class="text-xs font-bold text-amber-900">不公開項目給對方知道</div>
+              <div class="text-[11px] text-amber-700/80">金額仍計入總花費，但對方看不到品項名稱</div>
+            </div>
+          </div>
+          <input id="rec-private" type="checkbox" class="w-4 h-4 accent-amber-600 rounded">
+        </label>
+
+        <button onclick="submitRecord()" class="w-full py-3.5 rounded-2xl bg-gradient-to-r from-sage-600 to-ocean-600 text-white font-bold text-sm shadow-md active:scale-98 transition">
+          儲存並同步到試算表
         </button>
       </div>
     </div>
 
-    <!-- ================= 彈窗 2: 新增付款方式 ================= -->
-    <div id="modal-add-payment" class="hidden fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
-      <div class="bg-white w-full max-w-xs rounded-3xl p-5 space-y-3">
-        <h3 class="font-bold text-slate-800 text-sm">新增自訂付款方式</h3>
-        <input type="text" id="input-new-payment" placeholder="例如：玉山信用卡、街口支付" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs">
-        <div class="flex space-x-2 pt-2">
-          <button onclick="closeAddPaymentModal()" class="flex-1 py-2 bg-slate-100 text-slate-600 rounded-xl text-xs font-semibold">取消</button>
-          <button onclick="savePaymentMethod()" class="flex-1 py-2 bg-sage-500 text-white rounded-xl text-xs font-semibold">儲存</button>
+    <!-- ==================== 彈窗：新增共用行程 ==================== -->
+    <div id="event-modal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-end justify-center max-w-[480px] mx-auto">
+      <div class="bg-white w-full rounded-t-3xl p-5 space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+          <h3 class="font-bold text-base text-slate-800">新增共用行程</h3>
+          <button onclick="closeEventModal()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
         </div>
-      </div>
-    </div>
 
-    <!-- ================= 彈窗 3: 新增行程彈窗 ================= -->
-    <div id="modal-add-event" class="hidden fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-end justify-center p-0">
-      <div class="bg-white w-full max-w-md rounded-t-3xl p-5 space-y-3">
-        <div class="flex items-center justify-between border-b border-slate-100 pb-2">
-          <h3 class="font-bold text-slate-800 text-sm flex items-center">
-            <i class="ph ph-heart mr-1.5 text-sage-500"></i> 新增約會 / 共用行程
-          </h3>
-          <button onclick="closeAddEventModal()" class="text-slate-400 text-base"><i class="ph ph-x"></i></button>
-        </div>
         <div>
-          <label class="text-xs font-semibold text-slate-400">行程名稱</label>
-          <input type="text" id="event-title" placeholder="如：去淡水看夕陽、吃火鍋" class="w-full mt-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs">
+          <label class="text-xs font-semibold text-slate-500">行程名稱</label>
+          <input id="ev-title" type="text" placeholder="例如：看電影、繳房租、紀念日晚餐" class="w-full mt-1 px-3 py-2.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs focus:outline-none focus:border-ocean-500">
         </div>
-        <div class="grid grid-cols-2 gap-2">
+
+        <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="text-xs font-semibold text-slate-400">活動類型</label>
-            <select id="event-type" class="w-full mt-1 px-2.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs">
-              <option value="date">浪漫約會 🌿</option>
-              <option value="anniversary">紀念日 🎂</option>
-              <option value="bill">共同繳費 ⚡</option>
-              <option value="trip">旅遊出遊 ✈️</option>
+            <label class="text-xs font-semibold text-slate-500">日期</label>
+            <input id="ev-date" type="date" class="w-full mt-1 px-3 py-2.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs focus:outline-none focus:border-ocean-500">
+          </div>
+          <div>
+            <label class="text-xs font-semibold text-slate-500">類型標籤</label>
+            <select id="ev-tag" class="w-full mt-1 px-3 py-2.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs focus:outline-none focus:border-ocean-500">
+              <option value="約會">🌿 約會</option>
+              <option value="紀念日">🎂 紀念日</option>
+              <option value="繳費">🧾 共同繳費</option>
+              <option value="旅遊">✈️ 旅遊出遊</option>
+              <option value="其他">📌 其他提醒</option>
             </select>
           </div>
-          <div>
-            <label class="text-xs font-semibold text-slate-400">預估花費 (可選)</label>
-            <input type="number" id="event-budget" placeholder="0" class="w-full mt-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs">
-          </div>
         </div>
-        <button onclick="saveCalendarEvent()" class="w-full py-2.5 bg-sage-500 text-white rounded-xl font-bold text-xs mt-2">
+
+        <div>
+          <label class="text-xs font-semibold text-slate-500">備註 / 預估花費（選填）</label>
+          <input id="ev-note" type="text" placeholder="地點或備註事項" class="w-full mt-1 px-3 py-2.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs focus:outline-none focus:border-ocean-500">
+        </div>
+
+        <button onclick="submitEvent()" class="w-full py-3.5 rounded-2xl bg-ocean-500 text-white font-bold text-sm shadow-md active:scale-98 transition">
           加入共用行事曆
         </button>
       </div>
     </div>
 
-    <!-- 自訂訊息提示 Toast -->
-    <div id="app-toast" class="hidden fixed top-16 left-1/2 -translate-x-1/2 z-50 bg-slate-800/90 text-white text-xs px-4 py-2 rounded-full shadow-lg flex items-center space-x-1.5 transition">
-      <i class="ph ph-info text-sage-300"></i>
-      <span id="toast-message">操作完成</span>
+    <!-- ==================== 彈窗：確認對話框 (取代 alert/confirm) ==================== -->
+    <div id="confirm-modal" class="hidden fixed inset-0 z-50 bg-slate-900/50 flex items-center justify-center p-6 max-w-[480px] mx-auto">
+      <div class="bg-white w-full rounded-3xl p-5 shadow-xl space-y-4">
+        <h3 id="confirm-title" class="font-bold text-base text-slate-800">確認操作</h3>
+        <p id="confirm-message" class="text-xs text-slate-600 leading-relaxed"></p>
+        <div class="grid grid-cols-2 gap-2.5 pt-1">
+          <button onclick="closeConfirmModal()" class="py-2.5 rounded-2xl bg-slate-100 text-slate-600 text-xs font-bold">取消</button>
+          <button id="confirm-ok-btn" class="py-2.5 rounded-2xl bg-sage-500 text-white text-xs font-bold">確定</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 頂部浮動 Toast 訊息 ==================== -->
+    <div id="toast-box" class="hidden fixed top-16 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-full bg-slate-800/95 text-white text-xs font-medium shadow-lg whitespace-nowrap transition-opacity">
+      <span id="toast-msg"></span>
     </div>
 
   </div>
 
   <script>
-    /* ================= 狀態與初始資料 (小梅 & 吐司) ================= */
-    const USERS = {
-      user_a: { id: 'user_a', name: '小梅', shortName: '梅', color: 'sage' },
-      user_b: { id: 'user_b', name: '吐司', shortName: '吐', color: 'ocean' }
+    // ==================== 全域狀態初始化（零假資料正式版） ====================
+    const STORAGE_KEYS = {
+      USER: 'mt_couple_user',
+      SESSION_TOKEN: 'mt_couple_session_token',
+      GAS_URL: 'mt_couple_gas_url',
+      RECORDS: 'mt_couple_records_v2',
+      EVENTS: 'mt_couple_events_v2',
+      PAYMENTS: 'mt_couple_payments_v2'
     };
 
-    let currentUser = 'user_a';
-    let currentFilter = 'all';
-    let currentSelectedCategory = 'food';
-    let currentSplitType = 'personal';
-    let calendarCurrentDate = new Date();
-    let selectedCalendarDateStr = getFormattedDate(new Date());
+    const USER_META = {
+      xiaomei: { id: 'xiaomei', name: '小梅', short: '梅', theme: 'sage' },
+      toast: { id: 'toast', name: '吐司', short: '吐', theme: 'ocean' }
+    };
 
-    // Google Sheets Webhook URL (存於 localStorage)
-    let sheetsWebhookUrl = localStorage.getItem('sweet_sheets_url') || '';
+    let state = {
+      currentUser: localStorage.getItem(STORAGE_KEYS.USER) || '',
+      sessionToken: localStorage.getItem(STORAGE_KEYS.SESSION_TOKEN) || '',
+      gasUrl: localStorage.getItem(STORAGE_KEYS.GAS_URL) || '',
+      records: JSON.parse(localStorage.getItem(STORAGE_KEYS.RECORDS) || '[]'),
+      events: JSON.parse(localStorage.getItem(STORAGE_KEYS.EVENTS) || '[]'),
+      payments: JSON.parse(localStorage.getItem(STORAGE_KEYS.PAYMENTS) || '["現金","信用卡","LINE Pay","悠遊卡"]'),
+      currentTab: 'home',
+      recordFilter: 'all',
+      selectedSplit: 'self',
+      calYear: new Date().getFullYear(),
+      calMonth: new Date().getMonth(),
+      selectedDate: getTodayStr()
+    };
 
-    // 預設分類
-    const CATEGORIES = [
-      { id: 'food', name: '餐飲美食', icon: 'ph-fork-knife', color: 'bg-emerald-100 text-emerald-700' },
-      { id: 'daily', name: '日常用品', icon: 'ph-shopping-bag', color: 'bg-teal-100 text-teal-700' },
-      { id: 'entertainment', name: '約會娛樂', icon: 'ph-film-strip', color: 'bg-sky-100 text-sky-700' },
-      { id: 'transport', name: '交通出行', icon: 'ph-train', color: 'bg-blue-100 text-blue-700' },
-      { id: 'gift', name: '驚喜禮物', icon: 'ph-gift', color: 'bg-purple-100 text-purple-700' },
-      { id: 'medical', name: '醫療保健', icon: 'ph-first-aid', color: 'bg-rose-100 text-rose-700' },
-      { id: 'home', name: '水電居住', icon: 'ph-house-line', color: 'bg-amber-100 text-amber-700' },
-      { id: 'other', name: '其他支出', icon: 'ph-dots-three-outline', color: 'bg-slate-100 text-slate-700' }
-    ];
-
-    // 自訂付款方式清單
-    let paymentMethods = JSON.parse(localStorage.getItem('sweet_payments')) || ['現金', '玉山信用卡', 'LINE Pay', '悠遊卡', '街口支付'];
-
-    // 初始帳目資料
-    const todayStr = getFormattedDate(new Date());
-    let records = JSON.parse(localStorage.getItem('sweet_records')) || [
-      {
-        id: 'rec-1',
-        userId: 'user_a',
-        amount: 280,
-        category: 'food',
-        payment: 'LINE Pay',
-        title: '早午餐輕食',
-        date: todayStr,
-        splitType: 'aa',
-        isPrivate: false,
-        timestamp: Date.now() - 3600000 * 3
-      },
-      {
-        id: 'rec-2',
-        userId: 'user_a',
-        amount: 600,
-        category: 'gift',
-        payment: '玉山信用卡',
-        title: '神秘紀念禮物',
-        date: todayStr,
-        splitType: 'personal',
-        isPrivate: true, // 伴侶保密模式
-        timestamp: Date.now() - 3600000 * 2
-      },
-      {
-        id: 'rec-3',
-        userId: 'user_b',
-        amount: 450,
-        category: 'food',
-        payment: '街口支付',
-        title: '採買新鮮食材',
-        date: todayStr,
-        splitType: 'for_partner', // 吐司幫小梅付
-        isPrivate: false,
-        timestamp: Date.now() - 3600000
-      }
-    ];
-
-    // 行事曆行程資料
-    let calendarEvents = JSON.parse(localStorage.getItem('sweet_events')) || [
-      {
-        id: 'ev-1',
-        date: todayStr,
-        title: '晚上散步與喝熱熱的抹茶拿鐵 🍵',
-        type: 'date',
-        budget: 220,
-        creator: 'user_a'
-      },
-      {
-        id: 'ev-2',
-        date: getOffsetDateStr(4),
-        title: '小梅與吐司交往紀念日晚餐 🥂',
-        type: 'anniversary',
-        budget: 1800,
-        creator: 'user_b'
-      }
-    ];
-
-    /* ================= 輔助時間函式 ================= */
-    function getFormattedDate(date) {
-      const y = date.getFullYear();
-      const m = String(date.getMonth() + 1).padStart(2, '0');
-      const d = String(date.getDate()).padStart(2, '0');
+    // 取得當地 YYYY-MM-DD
+    function getTodayStr() {
+      const now = new Date();
+      const y = now.getFullYear();
+      const m = String(now.getMonth() + 1).padStart(2, '0');
+      const d = String(now.getDate()).padStart(2, '0');
       return `${y}-${m}-${d}`;
     }
 
-    function getOffsetDateStr(offsetDays) {
-      const d = new Date();
-      d.setDate(d.getDate() + offsetDays);
-      return getFormattedDate(d);
-    }
-
-    function persistLocal() {
-      localStorage.setItem('sweet_records', JSON.stringify(records));
-      localStorage.setItem('sweet_events', JSON.stringify(calendarEvents));
-      localStorage.setItem('sweet_payments', JSON.stringify(paymentMethods));
-    }
-
-    /* ================= 頁面初始化 ================= */
-    window.onload = function() {
-      const now = new Date();
-      document.getElementById('today-date-text').innerText = `${now.getFullYear()}/${now.getMonth() + 1}/${now.getDate()}`;
-      document.getElementById('input-date').value = todayStr;
-
-      if (sheetsWebhookUrl) {
-        document.getElementById('sheets-url-input').value = sheetsWebhookUrl;
-        document.getElementById('sync-status-badge').innerText = '已設定雲端';
-        document.getElementById('sync-status-badge').className = 'text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-medium';
+    // 標準化任何試算表傳回的日期格式為 YYYY-MM-DD
+    function normalizeDateStr(raw) {
+      if (!raw) return getTodayStr();
+      const s = String(raw).trim();
+      if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+      const parsed = new Date(s);
+      if (!isNaN(parsed.getTime())) {
+        const y = parsed.getFullYear();
+        const m = String(parsed.getMonth() + 1).padStart(2, '0');
+        const d = String(parsed.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
       }
+      return s.slice(0, 10);
+    }
 
-      renderCategoriesSelector();
-      renderPaymentOptions();
-      renderPaymentManageList();
-      updateDashboard();
-      renderRecordsStream();
-      renderCalendar();
-      renderCalendarEvents();
-      updateUserUI();
+    // ==================== 啟動檢查 ====================
+    window.onload = function() {
+      document.getElementById('today-date-label').textContent = getTodayStr();
+      document.getElementById('gas-url-input').value = state.gasUrl;
+
+      if (!state.currentUser || !state.sessionToken) {
+        showLoginScreen();
+      } else {
+        applyUserTheme();
+        renderAll();
+        if (state.gasUrl) {
+          pullFromCloud(false);
+        }
+      }
     };
 
-    /* ================= 使用者與視角切換 ================= */
-    function toggleUserDropdown() {
-      const dd = document.getElementById('user-dropdown');
-      dd.classList.toggle('hidden');
-    }
-
-    function selectUser(userId) {
-      currentUser = userId;
-      document.getElementById('user-dropdown').classList.add('hidden');
-      updateUserUI();
-    }
-
-    function switchCurrentUser() {
-      currentUser = currentUser === 'user_a' ? 'user_b' : 'user_a';
-      updateUserUI();
-    }
-
-    function updateUserUI() {
-      const user = USERS[currentUser];
-      const partner = USERS[currentUser === 'user_a' ? 'user_b' : 'user_a'];
-
-      document.getElementById('current-user-name').innerText = user.name;
-      document.getElementById('user-avatar-badge').innerText = user.shortName;
-      if (currentUser === 'user_a') {
-        document.getElementById('user-avatar-badge').className = "w-8 h-8 rounded-full bg-gradient-to-tr from-sage-500 to-emerald-400 flex items-center justify-center text-white shadow-sm font-bold text-xs";
+    // ==================== 登入與單一裝置工作階段驗證 ====================
+    function showLoginScreen(alertMsg = '') {
+      const screen = document.getElementById('login-screen');
+      screen.classList.remove('hidden');
+      const alertBox = document.getElementById('session-alert-box');
+      if (alertMsg) {
+        document.getElementById('session-alert-msg').textContent = alertMsg;
+        alertBox.classList.remove('hidden');
       } else {
-        document.getElementById('user-avatar-badge').className = "w-8 h-8 rounded-full bg-gradient-to-tr from-ocean-500 to-sky-400 flex items-center justify-center text-white shadow-sm font-bold text-xs";
-      }
-
-      document.getElementById('switch-btn-label').innerText = `切換至 ${partner.name}`;
-      document.getElementById('label-user-a').innerText = `${USERS.user_a.name}`;
-      document.getElementById('label-user-b').innerText = `${USERS.user_b.name}`;
-
-      document.getElementById('my-helped-label').innerText = `今日我幫 ${partner.name} 墊付`;
-      document.getElementById('partner-helped-label').innerText = `今日 ${partner.name} 幫我墊付`;
-
-      showToast(`已切換操作身分：${user.name}`);
-      updateDashboard();
-      renderRecordsStream();
-    }
-
-    /* ================= 導航切換 ================= */
-    function switchTab(tabId) {
-      const tabs = ['home', 'records', 'calendar', 'settings'];
-      tabs.forEach(t => {
-        document.getElementById(`tab-${t}`).classList.add('hidden');
-        const navBtn = document.getElementById(`nav-${t}`);
-        navBtn.classList.remove('tab-active');
-        navBtn.classList.add('text-slate-400');
-      });
-
-      document.getElementById(`tab-${tabId}`).classList.remove('hidden');
-      const activeNav = document.getElementById(`nav-${tabId}`);
-      activeNav.classList.add('tab-active');
-      activeNav.classList.remove('text-slate-400');
-
-      if (tabId === 'calendar') {
-        renderCalendar();
-        renderCalendarEvents();
+        alertBox.classList.add('hidden');
       }
     }
 
-    /* ================= 儀表板 & 今日消費條計算 ================= */
-    function updateDashboard() {
-      const partnerId = currentUser === 'user_a' ? 'user_b' : 'user_a';
-      const today = todayStr;
+    async function loginAs(userId) {
+      const newToken = `${userId}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      state.currentUser = userId;
+      state.sessionToken = newToken;
+      localStorage.setItem(STORAGE_KEYS.USER, userId);
+      localStorage.setItem(STORAGE_KEYS.SESSION_TOKEN, newToken);
 
-      let userAToday = 0;
-      let userBToday = 0;
-      let myHelpedToday = 0;
-      let partnerHelpedToday = 0;
-      let netOwedToMe = 0;
+      document.getElementById('login-screen').classList.add('hidden');
+      applyUserTheme();
+      renderAll();
 
-      records.forEach(r => {
-        if (r.date === today) {
-          if (r.userId === 'user_a') userAToday += r.amount;
-          else userBToday += r.amount;
-        }
-
-        if (r.splitType === 'aa') {
-          const half = r.amount / 2;
-          if (r.userId === currentUser) {
-            netOwedToMe += half;
-            if (r.date === today) myHelpedToday += half;
-          } else {
-            netOwedToMe -= half;
-            if (r.date === today) partnerHelpedToday += half;
-          }
-        } else if (r.splitType === 'for_partner') {
-          if (r.userId === currentUser) {
-            netOwedToMe += r.amount;
-            if (r.date === today) myHelpedToday += r.amount;
-          } else {
-            netOwedToMe -= r.amount;
-            if (r.date === today) partnerHelpedToday += r.amount;
-          }
-        }
-      });
-
-      document.getElementById('total-user-a-today').innerText = `$${userAToday.toLocaleString()}`;
-      document.getElementById('total-user-b-today').innerText = `$${userBToday.toLocaleString()}`;
-
-      const totalSum = userAToday + userBToday;
-      let userARatio = 50;
-      let userBRatio = 50;
-      if (totalSum > 0) {
-        userARatio = Math.round((userAToday / totalSum) * 100);
-        userBRatio = 100 - userARatio;
+      if (state.gasUrl) {
+        await postToCloud({
+          action: 'updateSession',
+          userId: userId,
+          sessionToken: newToken
+        });
+        await pullFromCloud(false);
       }
-      document.getElementById('bar-user-a').style.width = `${userARatio}%`;
-      document.getElementById('bar-user-b').style.width = `${userBRatio}%`;
+      showToast(`歡迎回來，${USER_META[userId].name}！`);
+    }
 
-      document.getElementById('my-helped-today').innerText = `$${Math.round(myHelpedToday).toLocaleString()}`;
-      document.getElementById('partner-helped-today').innerText = `$${Math.round(partnerHelpedToday).toLocaleString()}`;
+    function logoutUser() {
+      state.currentUser = '';
+      state.sessionToken = '';
+      localStorage.removeItem(STORAGE_KEYS.USER);
+      localStorage.removeItem(STORAGE_KEYS.SESSION_TOKEN);
+      showLoginScreen();
+    }
 
-      const banner = document.getElementById('balance-banner');
-      const text = document.getElementById('balance-text');
-      const partnerName = USERS[partnerId].name;
+    function applyUserTheme() {
+      const meta = USER_META[state.currentUser] || USER_META.xiaomei;
+      const avatar = document.getElementById('header-avatar');
+      avatar.textContent = meta.short;
+      avatar.className = `w-9 h-9 rounded-full text-white flex items-center justify-center font-bold text-sm shadow-sm ${
+        meta.id === 'xiaomei' ? 'bg-sage-500' : 'bg-ocean-500'
+      }`;
+      document.getElementById('header-username').textContent = meta.name;
+      document.getElementById('settings-user-label').textContent = meta.name;
+    }
 
-      if (netOwedToMe > 0) {
-        banner.className = "mt-3 p-3 rounded-2xl text-xs flex items-center justify-between font-medium bg-emerald-50 text-emerald-800 border border-emerald-200/80";
-        text.innerHTML = `<i class="ph ph-hand-heart text-base mr-1 text-sage-600"></i> ${partnerName} 目前需找回給我 <b>$${Math.round(netOwedToMe)}</b>`;
-      } else if (netOwedToMe < 0) {
-        banner.className = "mt-3 p-3 rounded-2xl text-xs flex items-center justify-between font-medium bg-ocean-50 text-ocean-800 border border-ocean-200/80";
-        text.innerHTML = `<i class="ph ph-wallet text-base mr-1 text-ocean-600"></i> 我目前需找還給 ${partnerName} <b>$${Math.round(Math.abs(netOwedToMe))}</b>`;
+    // ==================== Google Apps Script 雙向無阻礙同步核心 ====================
+    function setSyncStatus(status, text) {
+      const dot = document.getElementById('sync-dot');
+      const label = document.getElementById('sync-text');
+      const badge = document.getElementById('settings-sync-badge');
+      const spin = document.getElementById('sync-spin-icon');
+
+      label.textContent = text;
+      spin.classList.remove('fa-spin');
+
+      if (status === 'syncing') {
+        dot.className = 'w-2 h-2 rounded-full bg-amber-400 animate-pulse';
+        spin.classList.add('fa-spin');
+        badge.className = 'text-[11px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-600';
+        badge.textContent = '同步中...';
+      } else if (status === 'ok') {
+        dot.className = 'w-2 h-2 rounded-full bg-emerald-500';
+        badge.className = 'text-[11px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600';
+        badge.textContent = '已連線';
+      } else if (status === 'error') {
+        dot.className = 'w-2 h-2 rounded-full bg-rose-500';
+        badge.className = 'text-[11px] px-2 py-0.5 rounded-full bg-rose-50 text-rose-600';
+        badge.textContent = '同步異常';
       } else {
-        banner.className = "mt-3 p-3 rounded-2xl text-xs flex items-center justify-between font-medium bg-slate-50 text-slate-700 border border-slate-200";
-        text.innerHTML = `<i class="ph ph-scales text-base mr-1"></i> 雙方帳務平衡，兩不相欠！`;
+        dot.className = 'w-2 h-2 rounded-full bg-slate-300';
+        badge.className = 'text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-500';
+        badge.textContent = '未連線';
       }
-
-      renderHomeTodayList();
     }
 
-    function renderHomeTodayList() {
-      const container = document.getElementById('home-today-list');
-      const todayRecords = records.filter(r => r.date === todayStr);
+    // 使用 text/plain;charset=utf-8 避免觸發 Google Apps Script 拒絕的 CORS OPTIONS 預檢請求
+    async function postToCloud(payload) {
+      if (!state.gasUrl) return null;
+      setSyncStatus('syncing', '正在同步至試算表...');
+      try {
+        const res = await fetch(state.gasUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'text/plain;charset=utf-8'
+          },
+          body: JSON.stringify(payload),
+          redirect: 'follow'
+        });
+        const json = await res.json();
+        if (json && json.status === 'ok') {
+          const nowTime = new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' });
+          setSyncStatus('ok', `雲端已同步 (${nowTime})`);
+          document.getElementById('last-sync-detail').textContent = `最後成功寫入時間：${nowTime}`;
+          return json;
+        } else {
+          throw new Error(json.message || '後端回傳錯誤');
+        }
+      } catch (err) {
+        console.error('POST Cloud Error:', err);
+        setSyncStatus('error', '寫入失敗，請檢查網址權限');
+        showToast('同步失敗：請確認試算表網址與權限設為所有人');
+        return null;
+      }
+    }
 
-      if (todayRecords.length === 0) {
-        container.innerHTML = `<div class="p-6 text-center text-xs text-slate-400 bg-white rounded-2xl border border-slate-100">今日尚無開銷，快按右下角 ＋ 記錄兩人的甜蜜日常！</div>`;
+    async function pullFromCloud(manual = false) {
+      if (!state.gasUrl) {
+        setSyncStatus('idle', '尚未設定雲端網址');
+        if (manual) {
+          switchTab('settings');
+          showToast('請先在此貼上 Google 試算表網址');
+        }
         return;
       }
 
-      container.innerHTML = todayRecords.map(r => generateRecordCardHTML(r)).join('');
+      setSyncStatus('syncing', '正在讀取試算表...');
+      try {
+        const cacheBuster = `${state.gasUrl}${state.gasUrl.includes('?') ? '&' : '?'}t=${Date.now()}`;
+        const res = await fetch(cacheBuster, { method: 'GET', redirect: 'follow' });
+        const json = await res.json();
+
+        if (json && json.status === 'ok') {
+          // 1. 檢查單一裝置登入鎖
+          if (json.sessions && state.currentUser && json.sessions[state.currentUser]) {
+            const remoteToken = json.sessions[state.currentUser];
+            if (remoteToken && remoteToken !== state.sessionToken) {
+              logoutUser();
+              showLoginScreen('你的帳號已在另一台裝置登入，本機已自動登出以保護隱私。');
+              return;
+            }
+          }
+
+          // 2. 讀取消費紀錄（包含你在試算表手動新增的資料）
+          if (Array.isArray(json.records)) {
+            state.records = json.records.map(r => ({
+              id: String(r.id || `sheet_${Math.random().toString(36).slice(2, 9)}`),
+              userId: (r.userId === 'toast' || r.userId === '吐司') ? 'toast' : 'xiaomei',
+              amount: Number(r.amount) || 0,
+              category: r.category || '其他',
+              payment: r.payment || '現金',
+              title: r.title || '未命名項目',
+              date: normalizeDateStr(r.date),
+              splitType: r.splitType || 'self',
+              isPrivate: r.isPrivate === true || String(r.isPrivate).toLowerCase() === 'true',
+              timestamp: Number(r.timestamp) || Date.now()
+            })).filter(r => r.amount > 0);
+            localStorage.setItem(STORAGE_KEYS.RECORDS, JSON.stringify(state.records));
+          }
+
+          // 3. 讀取共用行事曆
+          if (Array.isArray(json.events)) {
+            state.events = json.events.map(ev => ({
+              id: String(ev.id || `ev_${Math.random().toString(36).slice(2, 9)}`),
+              title: ev.title || '共用行程',
+              date: normalizeDateStr(ev.date),
+              tag: ev.tag || '約會',
+              note: ev.note || '',
+              creator: (ev.creator === 'toast' || ev.creator === '吐司') ? 'toast' : 'xiaomei'
+            }));
+            localStorage.setItem(STORAGE_KEYS.EVENTS, JSON.stringify(state.events));
+          }
+
+          // 4. 讀取付款方式
+          if (Array.isArray(json.payments) && json.payments.length > 0) {
+            state.payments = json.payments;
+            localStorage.setItem(STORAGE_KEYS.PAYMENTS, JSON.stringify(state.payments));
+          }
+
+          renderAll();
+          const nowTime = new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' });
+          setSyncStatus('ok', `雲端已同步 (${nowTime})`);
+          if (manual) showToast(`同步完成！共 ${state.records.length} 筆帳目`);
+        } else {
+          throw new Error('資料格式錯誤');
+        }
+      } catch (err) {
+        console.error('GET Cloud Error:', err);
+        setSyncStatus('error', '讀取失敗，請確認網址');
+        if (manual) showToast('讀取失敗，請確認 Apps Script 部署為「所有人」');
+      }
+    }
+
+    async function saveGasUrlAndPull() {
+      const input = document.getElementById('gas-url-input').value.trim();
+      if (!input || !input.startsWith('https://script.google.com/')) {
+        showToast('請輸入正確的 Google Apps Script 網址');
+        return;
+      }
+      state.gasUrl = input;
+      localStorage.setItem(STORAGE_KEYS.GAS_URL, input);
+      await pullFromCloud(true);
+    }
+
+    async function pushAllLocalToCloud() {
+      if (!state.gasUrl) {
+        showToast('請先輸入試算表網址');
+        return;
+      }
+      const res = await postToCloud({
+        action: 'syncAll',
+        records: state.records,
+        events: state.events,
+        payments: state.payments
+      });
+      if (res) {
+        showToast('本機資料已完整寫入試算表！');
+      }
+    }
+
+    function openInitialUrlModal() {
+      document.getElementById('login-screen').classList.add('hidden');
+      state.currentUser = 'xiaomei';
+      state.sessionToken = `temp_${Date.now()}`;
+      applyUserTheme();
+      switchTab('settings');
+    }
+
+    function clearLocalCacheOnly() {
+      localStorage.removeItem(STORAGE_KEYS.RECORDS);
+      localStorage.removeItem(STORAGE_KEYS.EVENTS);
+      state.records = [];
+      state.events = [];
+      renderAll();
+      if (state.gasUrl) {
+        pullFromCloud(true);
+      } else {
+        showToast('已清除本機暫存');
+      }
+    }
+
+    // ==================== 記帳操作 ====================
+    function openRecordModal() {
+      document.getElementById('rec-amount').value = '';
+      document.getElementById('rec-title').value = '';
+      document.getElementById('rec-date').value = getTodayStr();
+      document.getElementById('rec-private').checked = false;
+      selectSplitType('self');
+
+      const paySelect = document.getElementById('rec-payment');
+      paySelect.innerHTML = state.payments.map(p => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join('');
+
+      document.getElementById('record-modal').classList.remove('hidden');
+      setTimeout(() => document.getElementById('rec-amount').focus(), 100);
+    }
+
+    function closeRecordModal() {
+      document.getElementById('record-modal').classList.add('hidden');
+    }
+
+    function selectSplitType(type) {
+      state.selectedSplit = type;
+      ['self', 'aa', 'for_partner'].forEach(t => {
+        const btn = document.getElementById(`split-${t}`);
+        if (t === type) {
+          btn.className = 'py-2 px-2 rounded-2xl border-2 border-sage-500 bg-sage-50 text-sage-700 text-xs font-bold text-center transition';
+        } else {
+          btn.className = 'py-2 px-2 rounded-2xl border border-slate-200 bg-slate-50 text-slate-600 text-xs font-medium text-center transition';
+        }
+      });
+    }
+
+    async function submitRecord() {
+      const amount = parseFloat(document.getElementById('rec-amount').value);
+      const title = document.getElementById('rec-title').value.trim();
+      const date = document.getElementById('rec-date').value || getTodayStr();
+      const category = document.getElementById('rec-category').value;
+      const payment = document.getElementById('rec-payment').value;
+      const isPrivate = document.getElementById('rec-private').checked;
+
+      if (!amount || amount <= 0) {
+        showToast('請輸入大於 0 的消費金額');
+        return;
+      }
+
+      const newRecord = {
+        id: `rec_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+        userId: state.currentUser,
+        amount: amount,
+        category: category,
+        payment: payment,
+        title: title || category,
+        date: date,
+        splitType: state.selectedSplit,
+        isPrivate: isPrivate,
+        timestamp: Date.now()
+      };
+
+      state.records.unshift(newRecord);
+      localStorage.setItem(STORAGE_KEYS.RECORDS, JSON.stringify(state.records));
+      closeRecordModal();
+      renderAll();
+      showToast('已新增消費紀錄');
+
+      if (state.gasUrl) {
+        await postToCloud({
+          action: 'addRecord',
+          record: newRecord
+        });
+      }
+    }
+
+    function deleteRecord(id) {
+      openConfirmModal('刪除消費紀錄', '確定要刪除這筆消費紀錄嗎？（雲端試算表也會同步移除）', async () => {
+        state.records = state.records.filter(r => r.id !== id);
+        localStorage.setItem(STORAGE_KEYS.RECORDS, JSON.stringify(state.records));
+        renderAll();
+        showToast('已刪除該筆紀錄');
+
+        if (state.gasUrl) {
+          await postToCloud({
+            action: 'deleteRecord',
+            id: id
+          });
+        }
+      });
+    }
+
+    // ==================== 付款方式管理 ====================
+    async function addPaymentMethod() {
+      const input = document.getElementById('new-payment-input');
+      const val = input.value.trim();
+      if (!val) {
+        showToast('請輸入付款方式名稱');
+        return;
+      }
+      if (state.payments.includes(val)) {
+        showToast('此付款方式已存在');
+        return;
+      }
+      state.payments.push(val);
+      localStorage.setItem(STORAGE_KEYS.PAYMENTS, JSON.stringify(state.payments));
+      input.value = '';
+      renderPayments();
+      showToast(`已新增「${val}」`);
+
+      if (state.gasUrl) {
+        await postToCloud({
+          action: 'updatePayments',
+          payments: state.payments
+        });
+      }
+    }
+
+    async function removePaymentMethod(name) {
+      if (state.payments.length <= 1) {
+        showToast('至少需保留一種付款方式');
+        return;
+      }
+      state.payments = state.payments.filter(p => p !== name);
+      localStorage.setItem(STORAGE_KEYS.PAYMENTS, JSON.stringify(state.payments));
+      renderPayments();
+      showToast(`已移除「${name}」`);
+
+      if (state.gasUrl) {
+        await postToCloud({
+          action: 'updatePayments',
+          payments: state.payments
+        });
+      }
+    }
+
+    // ==================== 結算操作 ====================
+    function openSettleConfirm() {
+      openConfirmModal(
+        '一鍵結清代墊款項',
+        '確定要將目前所有「幫對方代付 / AA分攤」的帳目標記為已結清嗎？（原本的消費總金額紀錄仍會保留）',
+        async () => {
+          state.records = state.records.map(r => {
+            if (r.splitType === 'aa' || r.splitType === 'for_partner') {
+              return { ...r, splitType: 'settled' };
+            }
+            return r;
+          });
+          localStorage.setItem(STORAGE_KEYS.RECORDS, JSON.stringify(state.records));
+          renderAll();
+          showToast('已結清所有代墊差額！');
+
+          if (state.gasUrl) {
+            await postToCloud({
+              action: 'syncAll',
+              records: state.records,
+              events: state.events,
+              payments: state.payments
+            });
+          }
+        }
+      );
+    }
+
+    // ==================== 共用行事曆操作 ====================
+    function changeCalendarMonth(delta) {
+      state.calMonth += delta;
+      if (state.calMonth < 0) {
+        state.calMonth = 11;
+        state.calYear--;
+      } else if (state.calMonth > 11) {
+        state.calMonth = 0;
+        state.calYear++;
+      }
+      renderCalendar();
+    }
+
+    function selectCalendarDate(dateStr) {
+      state.selectedDate = dateStr;
+      renderCalendar();
+      renderSelectedDateEvents();
+    }
+
+    function openEventModal() {
+      document.getElementById('ev-title').value = '';
+      document.getElementById('ev-date').value = state.selectedDate || getTodayStr();
+      document.getElementById('ev-note').value = '';
+      document.getElementById('event-modal').classList.remove('hidden');
+    }
+
+    function closeEventModal() {
+      document.getElementById('event-modal').classList.add('hidden');
+    }
+
+    async function submitEvent() {
+      const title = document.getElementById('ev-title').value.trim();
+      const date = document.getElementById('ev-date').value || getTodayStr();
+      const tag = document.getElementById('ev-tag').value;
+      const note = document.getElementById('ev-note').value.trim();
+
+      if (!title) {
+        showToast('請輸入行程名稱');
+        return;
+      }
+
+      const newEv = {
+        id: `ev_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+        title: title,
+        date: date,
+        tag: tag,
+        note: note,
+        creator: state.currentUser
+      };
+
+      state.events.push(newEv);
+      state.selectedDate = date;
+      localStorage.setItem(STORAGE_KEYS.EVENTS, JSON.stringify(state.events));
+      closeEventModal();
+      renderCalendar();
+      renderSelectedDateEvents();
+      showToast('已加入共用行事曆');
+
+      if (state.gasUrl) {
+        await postToCloud({
+          action: 'addEvent',
+          event: newEv
+        });
+      }
+    }
+
+    function deleteEvent(id) {
+      openConfirmModal('刪除行程', '確定要刪除這個共用行程嗎？', async () => {
+        state.events = state.events.filter(e => e.id !== id);
+        localStorage.setItem(STORAGE_KEYS.EVENTS, JSON.stringify(state.events));
+        renderCalendar();
+        renderSelectedDateEvents();
+        showToast('已刪除行程');
+
+        if (state.gasUrl) {
+          await postToCloud({
+            action: 'deleteEvent',
+            id: id
+          });
+        }
+      });
+    }
+
+    // ==================== 畫面渲染邏輯 ====================
+    function renderAll() {
+      renderDashboard();
+      renderRecordsList();
+      renderCalendar();
+      renderSelectedDateEvents();
+      renderPayments();
+    }
+
+    function renderDashboard() {
+      const today = getTodayStr();
+      const currentMonthPrefix = today.slice(0, 7);
+
+      let xiaomeiToday = 0;
+      let toastToday = 0;
+      let monthlyTotal = 0;
+
+      let todayPaidForPartner = 0;
+      let todayPartnerPaidForMe = 0;
+      let netOwedToMe = 0; // 正數代表對方欠我，負數代表我欠對方
+
+      state.records.forEach(r => {
+        const amt = Number(r.amount) || 0;
+        const isToday = r.date === today;
+
+        if (r.date.startsWith(currentMonthPrefix)) {
+          monthlyTotal += amt;
+        }
+
+        if (isToday) {
+          if (r.userId === 'xiaomei') xiaomeiToday += amt;
+          else toastToday += amt;
+        }
+
+        // 代墊計算
+        let helperAmount = 0;
+        if (r.splitType === 'for_partner') helperAmount = amt;
+        else if (r.splitType === 'aa') helperAmount = Math.round(amt / 2);
+
+        if (helperAmount > 0) {
+          if (r.userId === state.currentUser) {
+            netOwedToMe += helperAmount;
+            if (isToday) todayPaidForPartner += helperAmount;
+          } else {
+            netOwedToMe -= helperAmount;
+            if (isToday) todayPartnerPaidForMe += helperAmount;
+          }
+        }
+      });
+
+      const combinedToday = xiaomeiToday + toastToday;
+      const xPct = combinedToday > 0 ? Math.round((xiaomeiToday / combinedToday) * 100) : 50;
+      const tPct = combinedToday > 0 ? (100 - xPct) : 50;
+
+      document.getElementById('xiaomei-today-amount').textContent = `$${xiaomeiToday.toLocaleString()}`;
+      document.getElementById('toast-today-amount').textContent = `$${toastToday.toLocaleString()}`;
+      document.getElementById('xiaomei-today-pct').textContent = combinedToday > 0 ? `${xPct}%` : '0%';
+      document.getElementById('toast-today-pct').textContent = combinedToday > 0 ? `${tPct}%` : '0%';
+      document.getElementById('bar-xiaomei').style.width = `${xPct}%`;
+      document.getElementById('bar-toast').style.width = `${tPct}%`;
+      document.getElementById('combined-today-amount').textContent = `$${combinedToday.toLocaleString()}`;
+      document.getElementById('monthly-total-label').textContent = `本月累計：$${monthlyTotal.toLocaleString()}`;
+
+      document.getElementById('today-paid-for-partner').textContent = `$${todayPaidForPartner.toLocaleString()}`;
+      document.getElementById('today-partner-paid-for-me').textContent = `$${todayPartnerPaidForMe.toLocaleString()}`;
+
+      const banner = document.getElementById('net-balance-banner');
+      const bannerText = document.getElementById('net-balance-text');
+      const bannerAmt = document.getElementById('net-balance-amount');
+      const partnerName = state.currentUser === 'xiaomei' ? '吐司' : '小梅';
+
+      if (netOwedToMe > 0) {
+        banner.className = 'rounded-2xl p-3 bg-sage-50 border border-sage-200 flex items-center justify-between';
+        bannerText.className = 'text-xs font-medium text-sage-700';
+        bannerText.textContent = `${partnerName} 累計需給你`;
+        bannerAmt.className = 'text-sm font-bold text-sage-700';
+        bannerAmt.textContent = `$${netOwedToMe.toLocaleString()}`;
+      } else if (netOwedToMe < 0) {
+        banner.className = 'rounded-2xl p-3 bg-ocean-50 border border-ocean-200 flex items-center justify-between';
+        bannerText.className = 'text-xs font-medium text-ocean-700';
+        bannerText.textContent = `你累計需給 ${partnerName}`;
+        bannerAmt.className = 'text-sm font-bold text-ocean-700';
+        bannerAmt.textContent = `$${Math.abs(netOwedToMe).toLocaleString()}`;
+      } else {
+        banner.className = 'rounded-2xl p-3 bg-slate-50 border border-slate-200/70 flex items-center justify-between';
+        bannerText.className = 'text-xs font-medium text-slate-600';
+        bannerText.textContent = '目前雙方收支平衡，互不相欠';
+        bannerAmt.className = 'text-sm font-bold text-slate-600';
+        bannerAmt.textContent = '$0';
+      }
+
+      // 渲染今日消費清單
+      const todayRecords = state.records
+        .filter(r => r.date === today)
+        .sort((a, b) => b.timestamp - a.timestamp);
+
+      const container = document.getElementById('today-records-list');
+      if (todayRecords.length === 0) {
+        container.innerHTML = `
+          <div class="bg-white rounded-3xl p-6 text-center border border-slate-100">
+            <p class="text-xs text-slate-400">今天還沒有任何消費紀錄，點擊右下角「＋」開始記帳吧！</p>
+          </div>
+        `;
+      } else {
+        container.innerHTML = todayRecords.map(r => buildRecordCardHtml(r)).join('');
+      }
     }
 
     function setRecordFilter(filter) {
-      currentFilter = filter;
-      document.querySelectorAll('.filter-btn').forEach(btn => {
-        btn.className = "filter-btn px-3.5 py-1.5 rounded-full text-xs font-medium bg-white text-slate-600 border border-slate-200";
+      state.recordFilter = filter;
+      ['all', 'xiaomei', 'toast', 'helper'].forEach(f => {
+        const btn = document.getElementById(`filter-${f}`);
+        if (f === filter) {
+          btn.className = 'px-3 py-1.5 rounded-xl text-xs font-semibold bg-sage-500 text-white transition';
+        } else {
+          btn.className = 'px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 transition';
+        }
       });
-      const activeBtn = document.getElementById(`filter-${filter}`);
-      if (activeBtn) {
-        activeBtn.className = "filter-btn px-3.5 py-1.5 rounded-full text-xs font-medium bg-sage-500 text-white shadow-sm";
-      }
-      renderRecordsStream();
+      renderRecordsList();
     }
 
-    function renderRecordsStream() {
-      const container = document.getElementById('records-stream');
-      let filtered = [...records].sort((a,b) => b.timestamp - a.timestamp);
+    function renderRecordsList() {
+      let filtered = [...state.records].sort((a, b) => {
+        if (a.date !== b.date) return b.date.localeCompare(a.date);
+        return b.timestamp - a.timestamp;
+      });
 
-      if (currentFilter === 'mine') {
-        filtered = filtered.filter(r => r.userId === currentUser);
-      } else if (currentFilter === 'partner') {
-        filtered = filtered.filter(r => r.userId !== currentUser);
+      if (state.recordFilter === 'xiaomei') {
+        filtered = filtered.filter(r => r.userId === 'xiaomei');
+      } else if (state.recordFilter === 'toast') {
+        filtered = filtered.filter(r => r.userId === 'toast');
+      } else if (state.recordFilter === 'helper') {
+        filtered = filtered.filter(r => r.splitType === 'aa' || r.splitType === 'for_partner');
       }
+
+      document.getElementById('records-count-badge').textContent = `${filtered.length} 筆`;
+      const container = document.getElementById('all-records-list');
 
       if (filtered.length === 0) {
-        container.innerHTML = `<div class="p-8 text-center text-xs text-slate-400">尚無明細紀錄</div>`;
-        return;
+        container.innerHTML = `
+          <div class="bg-white rounded-3xl p-8 text-center border border-slate-100">
+            <p class="text-xs text-slate-400">目前沒有符合條件的消費紀錄</p>
+          </div>
+        `;
+      } else {
+        container.innerHTML = filtered.map(r => buildRecordCardHtml(r)).join('');
       }
-
-      container.innerHTML = filtered.map(r => generateRecordCardHTML(r)).join('');
     }
 
-    /* ================= 卡片 HTML 生成 (關鍵保密模式) ================= */
-    function generateRecordCardHTML(r) {
-      const isMine = r.userId === currentUser;
-      const cat = CATEGORIES.find(c => c.id === r.category) || CATEGORIES[CATEGORIES.length - 1];
+    function buildRecordCardHtml(r) {
+      const isMine = r.userId === state.currentUser;
+      const isHiddenFromPartner = r.isPrivate && !isMine;
+      const ownerMeta = USER_META[r.userId] || USER_META.xiaomei;
 
-      // 保密模式處理：若伴侶開啟保密，我只看到金額與保密標籤，看不到品項
-      const isHiddenFromMe = !isMine && r.isPrivate;
-      const titleDisplay = isHiddenFromMe ? '🔒 伴侶保密支出 (明細已隱藏)' : r.title;
-      const categoryIcon = isHiddenFromMe ? 'ph-lock-key' : cat.icon;
-      const categoryBg = isHiddenFromMe ? 'bg-amber-100 text-amber-700' : cat.color;
+      const badgeColor = ownerMeta.id === 'xiaomei'
+        ? 'bg-sage-100 text-sage-700'
+        : 'bg-ocean-100 text-ocean-700';
 
-      let splitTag = '';
-      if (r.splitType === 'aa') {
-        splitTag = `<span class="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-medium border border-slate-200">平攤 AA</span>`;
-      } else if (r.splitType === 'for_partner') {
-        const text = isMine ? '我幫對方付' : '伴侶為我付';
-        splitTag = `<span class="text-[10px] bg-sage-50 text-sage-700 px-1.5 py-0.5 rounded font-medium border border-sage-200">${text}</span>`;
+      let splitBadge = '';
+      if (r.splitType === 'for_partner') {
+        splitBadge = `<span class="text-[10px] px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-800 font-semibold">全額代付</span>`;
+      } else if (r.splitType === 'aa') {
+        splitBadge = `<span class="text-[10px] px-1.5 py-0.5 rounded-md bg-purple-100 text-purple-700 font-semibold">AA分攤</span>`;
+      } else if (r.splitType === 'settled') {
+        splitBadge = `<span class="text-[10px] px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-400">已結清</span>`;
       }
 
-      const userBadge = r.userId === 'user_a'
-        ? `<span class="w-4 h-4 rounded-full bg-sage-500 text-white text-[9px] flex items-center justify-center font-bold">梅</span>`
-        : `<span class="w-4 h-4 rounded-full bg-ocean-500 text-white text-[9px] flex items-center justify-center font-bold">吐</span>`;
+      const displayTitle = isHiddenFromPartner
+        ? `<span class="text-slate-400 italic"><i class="fa-solid fa-lock mr-1 text-amber-500"></i>保密消費項目</span>`
+        : `${escapeHtml(r.title)} ${r.isPrivate ? '<i class="fa-solid fa-lock text-[10px] text-amber-500 ml-1" title="僅自己可見明細"></i>' : ''}`;
+
+      const displaySub = isHiddenFromPartner
+        ? `${r.date} · 項目已隱藏`
+        : `${r.date} · ${escapeHtml(r.category)} · ${escapeHtml(r.payment)}`;
 
       return `
-        <div class="bg-white p-3.5 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between transition hover:border-slate-200">
-          <div class="flex items-center space-x-3">
-            <div class="w-10 h-10 rounded-2xl ${categoryBg} flex items-center justify-center text-lg flex-shrink-0 shadow-inner">
-              <i class="ph ${categoryIcon}"></i>
+        <div class="bg-white rounded-2xl p-3.5 shadow-xs border border-slate-100 flex items-center justify-between">
+          <div class="flex items-center space-x-3 min-w-0">
+            <div class="w-9 h-9 rounded-full ${badgeColor} flex items-center justify-center font-bold text-xs shrink-0">
+              ${ownerMeta.short}
             </div>
-            <div>
+            <div class="min-w-0">
               <div class="flex items-center space-x-1.5">
-                ${userBadge}
-                <span class="text-xs font-bold text-slate-800 ${isHiddenFromMe ? 'text-amber-800 italic' : ''}">${titleDisplay}</span>
+                <span class="font-bold text-xs text-slate-800 truncate">${displayTitle}</span>
+                ${splitBadge}
               </div>
-              <div class="flex items-center space-x-1.5 text-[11px] text-slate-400 mt-0.5">
-                <span>${r.payment}</span>
-                <span>•</span>
-                <span>${r.date}</span>
-                ${splitTag}
-              </div>
+              <div class="text-[11px] text-slate-400 mt-0.5 truncate">${displaySub}</div>
             </div>
           </div>
-          <div class="text-right flex-shrink-0">
-            <span class="text-sm font-black text-slate-800">$${r.amount.toLocaleString()}</span>
-            ${r.isPrivate && isMine ? '<div class="text-[9px] text-amber-600 font-semibold flex items-center justify-end"><i class="ph ph-lock mr-0.5"></i>已對伴侶保密</div>' : ''}
+
+          <div class="flex items-center space-x-2.5 shrink-0 ml-2">
+            <span class="font-bold text-sm text-slate-800">$${Number(r.amount).toLocaleString()}</span>
+            ${isMine ? `
+              <button onclick="deleteRecord('${r.id}')" class="w-7 h-7 rounded-xl text-slate-300 hover:text-rose-500 hover:bg-rose-50 flex items-center justify-center transition">
+                <i class="fa-solid fa-trash-can text-xs"></i>
+              </button>
+            ` : ''}
           </div>
         </div>
       `;
     }
 
-    /* ================= 分類與自訂付款方式 ================= */
-    function renderCategoriesSelector() {
-      const container = document.getElementById('category-selector');
-      container.innerHTML = CATEGORIES.map((c, idx) => `
-        <button type="button" onclick="selectCategory('${c.id}')" id="cat-btn-${c.id}" 
-          class="cat-option flex flex-col items-center justify-center p-2 rounded-2xl border text-center transition ${idx === 0 ? 'border-sage-500 bg-sage-50/80 text-sage-700 font-bold' : 'border-slate-100 bg-slate-50 text-slate-600'}">
-          <div class="w-7 h-7 rounded-full ${c.color} flex items-center justify-center text-sm mb-1">
-            <i class="ph ${c.icon}"></i>
-          </div>
-          <span class="text-[10px]">${c.name}</span>
-        </button>
-      `).join('');
-    }
-
-    function selectCategory(catId) {
-      currentSelectedCategory = catId;
-      document.querySelectorAll('.cat-option').forEach(btn => {
-        btn.className = "cat-option flex flex-col items-center justify-center p-2 rounded-2xl border border-slate-100 bg-slate-50 text-slate-600 text-center";
-      });
-      const active = document.getElementById(`cat-btn-${catId}`);
-      if (active) {
-        active.className = "cat-option flex flex-col items-center justify-center p-2 rounded-2xl border border-sage-500 bg-sage-50/80 text-sage-700 font-bold text-center";
-      }
-    }
-
-    function renderPaymentOptions() {
-      const sel = document.getElementById('select-payment');
-      sel.innerHTML = paymentMethods.map(p => `<option value="${p}">${p}</option>`).join('');
-    }
-
-    function renderPaymentManageList() {
-      const container = document.getElementById('payment-methods-list');
-      container.innerHTML = paymentMethods.map(p => `
-        <div class="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl text-xs font-medium text-slate-700">
-          <span class="flex items-center"><i class="ph ph-credit-card mr-2 text-sage-500"></i> ${p}</span>
-          ${paymentMethods.length > 1 ? `<button onclick="deletePaymentMethod('${p}')" class="text-slate-400 hover:text-rose-500"><i class="ph ph-trash"></i></button>` : ''}
-        </div>
-      `).join('');
-    }
-
-    function setSplitType(type) {
-      currentSplitType = type;
-      ['personal', 'aa', 'for_partner'].forEach(t => {
-        const btn = document.getElementById(`split-btn-${t}`);
-        btn.className = "split-opt py-1.5 px-2 rounded-xl text-xs font-medium bg-white/70 text-slate-600 border border-transparent";
-      });
-      const active = document.getElementById(`split-btn-${type}`);
-      active.className = "split-opt py-1.5 px-2 rounded-xl text-xs font-medium bg-white text-sage-600 border border-sage-300 shadow-sm";
-
-      const hint = document.getElementById('split-hint');
-      if (type === 'personal') hint.innerText = "由我個人全額吸收，不影響對方應還款項。";
-      if (type === 'aa') hint.innerText = "雙方平攤，對方將欠我此筆金額的一半。";
-      if (type === 'for_partner') hint.innerText = "我幫對方代墊全額，對方將欠我此筆全額。";
-    }
-
-    /* ================= 新增記帳動作 ================= */
-    function openAddRecordModal() {
-      document.getElementById('input-amount').value = '';
-      document.getElementById('input-title').value = '';
-      document.getElementById('check-private').checked = false;
-      document.getElementById('modal-add-record').classList.remove('hidden');
-    }
-
-    function closeAddRecordModal() {
-      document.getElementById('modal-add-record').classList.add('hidden');
-    }
-
-    function saveRecord() {
-      const amount = parseFloat(document.getElementById('input-amount').value);
-      if (!amount || amount <= 0) {
-        showToast('請輸入有效金額！');
-        return;
-      }
-      let title = document.getElementById('input-title').value.trim();
-      if (!title) {
-        const cat = CATEGORIES.find(c => c.id === currentSelectedCategory);
-        title = cat ? cat.name : '一般消費';
-      }
-
-      const payment = document.getElementById('select-payment').value;
-      const date = document.getElementById('input-date').value || todayStr;
-      const isPrivate = document.getElementById('check-private').checked;
-
-      const newRec = {
-        id: 'rec-' + Date.now(),
-        userId: currentUser,
-        amount: amount,
-        category: currentSelectedCategory,
-        payment: payment,
-        title: title,
-        date: date,
-        splitType: currentSplitType,
-        isPrivate: isPrivate,
-        timestamp: Date.now()
-      };
-
-      records.unshift(newRec);
-      persistLocal();
-      closeAddRecordModal();
-      updateDashboard();
-      renderRecordsStream();
-      showToast(isPrivate ? '已記帳（已設為向伴侶保密）🔒' : '記帳成功！🌿');
-
-      // 若有設定 Webhook 則自動後台同步
-      if (sheetsWebhookUrl) {
-        autoPushToSheets();
-      }
-    }
-
-    /* ================= 新增/刪除付款方式 ================= */
-    function openAddPaymentModal() {
-      document.getElementById('input-new-payment').value = '';
-      document.getElementById('modal-add-payment').classList.remove('hidden');
-    }
-    function closeAddPaymentModal() {
-      document.getElementById('modal-add-payment').classList.add('hidden');
-    }
-    function savePaymentMethod() {
-      const val = document.getElementById('input-new-payment').value.trim();
-      if (!val) {
-        showToast('請輸入付款方式名稱');
-        return;
-      }
-      if (paymentMethods.includes(val)) {
-        showToast('此付款方式已存在');
-        return;
-      }
-      paymentMethods.push(val);
-      persistLocal();
-      renderPaymentOptions();
-      renderPaymentManageList();
-      closeAddPaymentModal();
-      showToast(`已新增付款方式：${val}`);
-    }
-    function deletePaymentMethod(name) {
-      paymentMethods = paymentMethods.filter(p => p !== name);
-      persistLocal();
-      renderPaymentOptions();
-      renderPaymentManageList();
-      showToast(`已刪除付款方式：${name}`);
-    }
-
-    /* ================= 共用情侶行事曆 ================= */
-    function changeMonth(delta) {
-      calendarCurrentDate.setMonth(calendarCurrentDate.getMonth() + delta);
-      renderCalendar();
-    }
-
     function renderCalendar() {
-      const year = calendarCurrentDate.getFullYear();
-      const month = calendarCurrentDate.getMonth();
-      document.getElementById('calendar-month-year').innerText = `${year}年 ${month + 1}月`;
+      const year = state.calYear;
+      const month = state.calMonth;
+      document.getElementById('calendar-month-title').textContent = `${year}年 ${month + 1}月`;
 
       const firstDay = new Date(year, month, 1).getDay();
       const daysInMonth = new Date(year, month + 1, 0).getDate();
-      const grid = document.getElementById('calendar-grid');
-      grid.innerHTML = '';
+      const todayStr = getTodayStr();
 
+      const eventDates = new Set(state.events.map(e => e.date));
+      const recordDates = new Set(state.records.map(r => r.date));
+
+      let html = '';
       for (let i = 0; i < firstDay; i++) {
-        grid.innerHTML += `<div class="h-10"></div>`;
+        html += `<div class="h-10"></div>`;
       }
 
       for (let d = 1; d <= daysInMonth; d++) {
         const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-        const isSelected = dateStr === selectedCalendarDateStr;
+        const isSelected = dateStr === state.selectedDate;
         const isToday = dateStr === todayStr;
+        const hasEvent = eventDates.has(dateStr);
+        const hasRec = recordDates.has(dateStr);
 
-        const hasEvents = calendarEvents.some(e => e.date === dateStr);
-        const hasRecords = records.some(r => r.date === dateStr);
-
-        let indicatorDot = '';
-        if (hasEvents) {
-          indicatorDot += `<span class="w-1.5 h-1.5 rounded-full bg-sage-500"></span>`;
+        let cellClass = 'h-10 rounded-xl flex flex-col items-center justify-center text-xs relative transition ';
+        if (isSelected) {
+          cellClass += 'bg-sage-500 text-white font-bold shadow-xs';
+        } else if (isToday) {
+          cellClass += 'bg-ocean-50 text-ocean-700 font-bold border border-ocean-200';
+        } else {
+          cellClass += 'text-slate-700 hover:bg-slate-50';
         }
-        if (hasRecords) {
-          indicatorDot += `<span class="w-1.5 h-1.5 rounded-full bg-ocean-400"></span>`;
-        }
 
-        grid.innerHTML += `
-          <button onclick="selectCalendarDate('${dateStr}')" 
-            class="h-10 flex flex-col items-center justify-center rounded-2xl relative transition ${isSelected ? 'bg-sage-500 text-white font-bold shadow-md' : 'hover:bg-slate-100 text-slate-700'} ${isToday && !isSelected ? 'border border-sage-400 font-bold text-sage-600' : ''}">
-            <span class="text-xs leading-none">${d}</span>
-            <div class="flex space-x-0.5 mt-1">
-              ${indicatorDot}
+        html += `
+          <button onclick="selectCalendarDate('${dateStr}')" class="${cellClass}">
+            <span>${d}</span>
+            <div class="flex space-x-0.5 mt-0.5 h-1">
+              ${hasEvent ? `<span class="w-1 h-1 rounded-full ${isSelected ? 'bg-white' : 'bg-ocean-500'}"></span>` : ''}
+              ${hasRec ? `<span class="w-1 h-1 rounded-full ${isSelected ? 'bg-amber-200' : 'bg-sage-400'}"></span>` : ''}
             </div>
           </button>
         `;
       }
+      document.getElementById('calendar-grid').innerHTML = html;
     }
 
-    function selectCalendarDate(dateStr) {
-      selectedCalendarDateStr = dateStr;
-      renderCalendar();
-      renderCalendarEvents();
-    }
+    function renderSelectedDateEvents() {
+      const dateStr = state.selectedDate;
+      document.getElementById('selected-cal-date-title').textContent = `${dateStr} 共用行程`;
 
-    function renderCalendarEvents() {
-      const titleEl = document.getElementById('selected-date-title');
-      const parts = selectedCalendarDateStr.split('-');
-      titleEl.innerText = `${parseInt(parts[1])}月${parseInt(parts[2])}日 約會行程`;
+      const dayEvents = state.events.filter(e => e.date === dateStr);
+      const container = document.getElementById('selected-date-events-list');
 
-      const container = document.getElementById('calendar-events-list');
-      const events = calendarEvents.filter(e => e.date === selectedCalendarDateStr);
-
-      if (events.length === 0) {
-        container.innerHTML = `<div class="py-4 text-center text-xs text-slate-400">當天尚無約會行程，點擊「新增行程」規劃甜蜜約會！</div>`;
+      if (dayEvents.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-5 text-xs text-slate-400 bg-slate-50 rounded-2xl">
+            這天尚未安排行程
+          </div>
+        `;
         return;
       }
 
-      container.innerHTML = events.map(e => {
-        const creator = USERS[e.creator] || USERS.user_a;
-        let typeBadge = '';
-        if (e.type === 'date') typeBadge = '<span class="text-[10px] bg-sage-50 text-sage-700 px-1.5 py-0.5 rounded">約會</span>';
-        if (e.type === 'anniversary') typeBadge = '<span class="text-[10px] bg-rose-50 text-rose-700 px-1.5 py-0.5 rounded">紀念日</span>';
-        if (e.type === 'bill') typeBadge = '<span class="text-[10px] bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded">繳費</span>';
-        if (e.type === 'trip') typeBadge = '<span class="text-[10px] bg-sky-50 text-sky-700 px-1.5 py-0.5 rounded">旅遊</span>';
-
+      container.innerHTML = dayEvents.map(ev => {
+        const creator = USER_META[ev.creator] || USER_META.xiaomei;
         return `
-          <div class="p-3 bg-slate-50/80 rounded-2xl border border-slate-100 flex items-center justify-between">
-            <div>
+          <div class="p-3 rounded-2xl bg-ocean-50/60 border border-ocean-100 flex items-center justify-between">
+            <div class="space-y-0.5">
               <div class="flex items-center space-x-1.5">
-                ${typeBadge}
-                <span class="text-xs font-bold text-slate-800">${e.title}</span>
+                <span class="text-[10px] px-2 py-0.5 rounded-full bg-white text-ocean-700 font-semibold border border-ocean-100">${escapeHtml(ev.tag)}</span>
+                <span class="font-bold text-xs text-slate-800">${escapeHtml(ev.title)}</span>
               </div>
-              <div class="text-[10px] text-slate-400 mt-0.5">由 ${creator.name} 建立 ${e.budget > 0 ? `• 預估開銷: $${e.budget}` : ''}</div>
+              <div class="text-[11px] text-slate-500">
+                由 ${creator.name} 建立 ${ev.note ? `· ${escapeHtml(ev.note)}` : ''}
+              </div>
             </div>
-            <button onclick="deleteCalendarEvent('${e.id}')" class="text-slate-300 hover:text-rose-500 text-xs p-1">
-              <i class="ph ph-trash"></i>
+            <button onclick="deleteEvent('${ev.id}')" class="w-7 h-7 rounded-xl text-slate-400 hover:text-rose-500 flex items-center justify-center">
+              <i class="fa-solid fa-trash-can text-xs"></i>
             </button>
           </div>
         `;
       }).join('');
     }
 
-    function openAddEventModal() {
-      document.getElementById('event-title').value = '';
-      document.getElementById('event-budget').value = '';
-      document.getElementById('modal-add-event').classList.remove('hidden');
-    }
-    function closeAddEventModal() {
-      document.getElementById('modal-add-event').classList.add('hidden');
-    }
-    function saveCalendarEvent() {
-      const title = document.getElementById('event-title').value.trim();
-      if (!title) {
-        showToast('請輸入行程名稱');
-        return;
-      }
-      const type = document.getElementById('event-type').value;
-      const budget = parseFloat(document.getElementById('event-budget').value) || 0;
-
-      calendarEvents.push({
-        id: 'ev-' + Date.now(),
-        date: selectedCalendarDateStr,
-        title: title,
-        type: type,
-        budget: budget,
-        creator: currentUser
-      });
-
-      persistLocal();
-      closeAddEventModal();
-      renderCalendar();
-      renderCalendarEvents();
-      showToast('已新增約會行程！📅');
-
-      if (sheetsWebhookUrl) autoPushToSheets();
-    }
-    function deleteCalendarEvent(id) {
-      calendarEvents = calendarEvents.filter(e => e.id !== id);
-      persistLocal();
-      renderCalendar();
-      renderCalendarEvents();
-      showToast('已刪除行程');
-      if (sheetsWebhookUrl) autoPushToSheets();
+    function renderPayments() {
+      const container = document.getElementById('payment-methods-list');
+      container.innerHTML = state.payments.map(p => `
+        <span class="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-slate-100 text-slate-700 text-xs font-medium">
+          <span>${escapeHtml(p)}</span>
+          <button onclick="removePaymentMethod('${escapeHtml(p)}')" class="text-slate-400 hover:text-rose-500 ml-1">
+            <i class="fa-solid fa-xmark text-[10px]"></i>
+          </button>
+        </span>
+      `).join('');
     }
 
-    /* ================= 結算與安全機制 ================= */
-    function settleAccountsPrompt() {
-      records.forEach(r => {
-        if (r.splitType === 'aa' || r.splitType === 'for_partner') {
-          r.splitType = 'settled';
+    // ==================== 導航與通用元件 ====================
+    function switchTab(tab) {
+      state.currentTab = tab;
+      ['home', 'records', 'calendar', 'settings'].forEach(t => {
+        const sec = document.getElementById(`tab-${t}`);
+        const nav = document.getElementById(`nav-${t}`);
+        if (t === tab) {
+          sec.classList.remove('hidden');
+          nav.className = 'flex flex-col items-center justify-center py-1 text-sage-600 font-bold';
+        } else {
+          sec.classList.add('hidden');
+          nav.className = 'flex flex-col items-center justify-center py-1 text-slate-400 font-medium';
         }
       });
-      persistLocal();
-      updateDashboard();
-      showToast('🎉 帳務已全數結清歸零！');
-      if (sheetsWebhookUrl) autoPushToSheets();
+      document.getElementById('main-scroll').scrollTop = 0;
     }
 
-    function simulateForceLogout() {
-      showToast('⚠️ 偵測到新裝置登入！Session Guard 已啟動，請重新確認身分');
+    let confirmCallback = null;
+    function openConfirmModal(title, message, onOk) {
+      document.getElementById('confirm-title').textContent = title;
+      document.getElementById('confirm-message').textContent = message;
+      confirmCallback = onOk;
+      document.getElementById('confirm-modal').classList.remove('hidden');
     }
 
-    /* ================= Google Sheets 雲端連線 ================= */
-    function saveAndTestSheetsUrl() {
-      const url = document.getElementById('sheets-url-input').value.trim();
-      if (!url) {
-        showToast('請輸入 Google Web App 網址');
-        return;
-      }
-      sheetsWebhookUrl = url;
-      localStorage.setItem('sweet_sheets_url', url);
-      document.getElementById('sync-status-badge').innerText = '已綁定雲端';
-      document.getElementById('sync-status-badge').className = 'text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-medium';
-      showToast('✅ 網址儲存成功！');
+    function closeConfirmModal() {
+      document.getElementById('confirm-modal').classList.add('hidden');
+      confirmCallback = null;
     }
 
-    async function syncWithGoogleSheets() {
-      if (!sheetsWebhookUrl) {
-        showToast('請先填寫並儲存 Google Web App 網址');
-        return;
-      }
+    document.getElementById('confirm-ok-btn').onclick = function() {
+      if (confirmCallback) confirmCallback();
+      closeConfirmModal();
+    };
 
-      showToast('正在與 Google 試算表同步中... ⏳');
-
-      try {
-        // 先推送本地資料
-        await fetch(sheetsWebhookUrl, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            records: records,
-            events: calendarEvents,
-            payments: paymentMethods
-          })
-        });
-
-        // 嘗試拉取最新資料
-        const res = await fetch(sheetsWebhookUrl);
-        if (res.ok) {
-          const data = await res.json();
-          if (data && data.records) {
-            records = data.records;
-            if (data.events) calendarEvents = data.events;
-            if (data.payments) paymentMethods = data.payments;
-            persistLocal();
-            updateDashboard();
-            renderRecordsStream();
-            renderCalendar();
-            renderPaymentOptions();
-            renderPaymentManageList();
-          }
-        }
-        showToast('🎉 雲端雙向同步成功！');
-      } catch (err) {
-        // 即使 CORS 限制，POST 通常仍能在 no-cors 模式下到達 Google Script
-        showToast('雲端已更新完成！');
-      }
-    }
-
-    function autoPushToSheets() {
-      if (!sheetsWebhookUrl) return;
-      fetch(sheetsWebhookUrl, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          records: records,
-          events: calendarEvents,
-          payments: paymentMethods
-        })
-      }).catch(() => {});
-    }
-
-    /* ================= 訊息提示 Toast ================= */
-    let toastTimeout;
+    let toastTimer = null;
     function showToast(msg) {
-      const toast = document.getElementById('app-toast');
-      document.getElementById('toast-message').innerText = msg;
-      toast.classList.remove('hidden');
-      clearTimeout(toastTimeout);
-      toastTimeout = setTimeout(() => {
-        toast.classList.add('hidden');
-      }, 2300);
+      const box = document.getElementById('toast-box');
+      document.getElementById('toast-msg').textContent = msg;
+      box.classList.remove('hidden');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => box.classList.add('hidden'), 2600);
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
     }
   </script>
 </body>
